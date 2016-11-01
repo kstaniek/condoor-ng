@@ -37,7 +37,7 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 # Delegate following methods to _session class
-@delegate("_session", ("expect", "expect_exact", "sendline",
+@delegate("_session", ("expect", "expect_exact", "expect_list", "compile_pattern_list", "sendline",
                        "isalive", "sendcontrol", "send", "read_nonblocking", "setecho"))
 class Controller(object):
     def __init__(self, connection):
@@ -82,7 +82,7 @@ class Controller(object):
                     self._session.setwinsize(1024, 160)
                     nrows, ncols = self._session.getwinsize()
                     logger.debug("Terminal window size changed from "
-                                "{}x{} to {}x{}".format(rows, cols, nrows, ncols))
+                                 "{}x{} to {}x{}".format(rows, cols, nrows, ncols))
                 else:
                     logger.debug("Terminal window size: {}x{}".format(rows, cols))
 
@@ -101,16 +101,16 @@ class Controller(object):
         self.setecho(True)
 
     def disconnect(self):
-        logger.debug("Disconnecting the sessions")
-        self.sendline('\x04')
-        self.sendline('\x03')
-        self.sendcontrol(']')
-        self.sendline('quit')
+        if self._session.isalive():
+            logger.debug("Disconnecting the sessions")
+            self.sendline('\x04')
+            self.sendline('\x03')
+            self.sendcontrol(']')
+            self.sendline('quit')
 
-        self._session.close()
+            self._session.close()
         logger.debug("Disconnected")
         self.connected = False
-
 
     @property
     def before(self):
@@ -125,4 +125,3 @@ class Controller(object):
         Property added to imitate pexpect.spawn class
         """
         return self._session.after if self._session else None
-

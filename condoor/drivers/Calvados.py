@@ -81,6 +81,3 @@ class Driver(Generic):
             self.device.send('exit')
             return True
         return False
-
-
-

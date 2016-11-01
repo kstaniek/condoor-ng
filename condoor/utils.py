@@ -30,6 +30,7 @@ import logging
 import socket
 import time
 import re
+import os
 
 
 def delegate(attribute_name, method_names):
@@ -116,7 +117,7 @@ def pattern_to_str(pattern):
     if isinstance(pattern, str):
         return pattern
     else:
-        return pattern.pattern
+        return pattern.pattern if pattern else None
 
 
 def levenshtein_distance(a, b):
@@ -173,7 +174,7 @@ def parse_inventory(inventory_output=None):
 
     match = re.search(r"(?i)SN: (?P<sn>.*)", inventory_output, re.MULTILINE)
     if match:
-        udi['sn'] = match.group('sn')
+        udi['sn'] = match.group('sn').strip(' ')
     return udi
 
 

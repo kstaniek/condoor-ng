@@ -1,22 +1,33 @@
 ---
 generic:
   #prompt: '(?P<hostname>[\w\-]+)[#>]'
-  prompt: '(?P<hostname>.*)[#>\$]'
+  # standby to hack the nexus case when standby is a part of prompt
+  prompt: '(?P<hostname>.*?(?<!\(standby\)))[#>\$]'
+  # prompt: '(?P<hostname>.*?)[#>\$]'
   prompt_dynamic: '{prompt}[#>]'
   username: '[U|u]sername:\s|login:\s?'
   password: '[P|p]assword:\s?'
   passowrd_filter: '[s]ftp://.*:(.*)@")'
+  # to capture the platform string from show version
+  pid2platform: '([A-Z]{3}[-| ]?[0-9]{3,4})'
+  # platform string
+  platform: '^(  )?cisco (.*?) '
+  version: 'Version (.*?)(?:\[| |$)'
+  vty: 'vty'
+  console: 'con|aux'
 
   rommon:
     - XR
     - eXR
     - IOS
     - NX-OS
+
   standby:
+    - NX-OS
     - XR
     - XR64
-    - NX-OS
     - IOS
+
   syntax_error:
     - XR
     - eXR
@@ -44,26 +55,24 @@ generic:
     description: 'Command too long'
 
   unable_to_connect:
-    pattern: 'nodename nor servname provided, or not known|
-      [Uu]nknown host|
-      [Oo]peration timed out|
-      [Cc]onnection timed out|
-      [Dd]estination unreachable|
-      [Uu]nable to connect|
-      [Cc]onnection refused|
-      command not found|
-      reset by peer|
-      closed by foreign host'
+    pattern: 'nodename nor servname provided, or not known|[Uu]nknown host|[Dd]estination unreachable|[Uu]nable to connect|[Cc]onnection refused|command not found|reset by peer|closed by foreign host'
+    description: 'Unable to connect'
+
+  timeout:
+    pattern: '[Oo]peration timed out|[Cc]onnection timed out'
+    description: 'Connection timeout'
 
 
 jumphost:
   prompt: '\$\s?|>\s?|#\s?|%\s?|\[.*:~\]'
+  prompt_dynamic: '{prompt}'
   # do not match 'Last login: Wed ....'
   username: '[U|u]sername:\s|^.*(?<![Ll]ast )login:'
   password: '[P|p]assword:\s?$'
   syntax_error:
     pattern: 'command not found'
     description: 'Command syntax error'
+  version: '^([a-zA-Z0-9].*)'
 
 
 XR:
@@ -109,6 +118,17 @@ IOS:
     pattern: '% Bad IP address or host name% Unknown command or computer name, or unable to find computer address|% Invalid input detected at ''\^'' marker\.|% Type "show \?" for a list of subcommands|% Ambiguous command:|% Incomplete command\.'
     description: 'Command syntax error'
 
+XE:
+  prompt: '^(?P<hostname>[\w\-\_\=\+]+)(\([^()]*\))?[#|>]'
+  prompt_dynamic: '{prompt}(\([^()]*\))?[#>]'
+  prompt_default: 'Router[#>]'
+  rommon: 'rommon \d+ >|rommon>'
+  password: 'Password: '
+  username: 'Username: '
+  standby: 'Standby console disabled'
+  syntax_error:
+    pattern: '% Bad IP address or host name% Unknown command or computer name, or unable to find computer address|% Invalid input detected at ''\^'' marker\.|% Type "show \?" for a list of subcommands|% Ambiguous command:|% Incomplete command\.'
+    description: 'Command syntax error'
 
 NX-OS:
   prompt: '^(?P<hostname>.*?)(\([^()]*\))?#'
@@ -119,6 +139,10 @@ NX-OS:
   rommon: 'loader >'
   standby: '\(standby\)'
   syntax_error: '% Invalid command at ''\^'' marker\.|% Incomplete command at ''\^'' marker\.'
+  # to capture the platform string from show version
+  pid2platform: '([A-Z0-9]{3}[-| ]?C[0-9]{3,4})'
+  version: 'System version: (.*)'
+  console: 'tty'
 
 Calvados:
   prompt: '^sysadmin-vm:?(?:_node)?[0-3]_RS?P[0-1]:?(?P<hostname>.*?)(\([^()]*\))?#'
@@ -139,3 +163,4 @@ Windriver:
   calvados: 'sysadmin-vm:?(?:_node)?[0-3]_RS?P[0-1]:?(?:.*)?(\([^()]*\))?#'
   lc: '\[host:~\]\$'
   syntax_error: 'command not found'
+  version: 'Wind River Linux (\d+\.\d+\.\d+\.\d+)'

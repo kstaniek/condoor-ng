@@ -33,13 +33,16 @@ from generic import Driver as Generic
 class Driver(Generic):
     platform = 'IOS'
     inventory_cmd = 'show inventory'
+    users_cmd = 'show users'
     target_prompt_components = ['prompt_dynamic', 'prompt_default', 'rommon']
 
     prepare_terminal_session = ['terminal len 0', 'terminal width 0']
     families = {
-        "ASR9K": "ASR9K",
-        "CRS": "CRS"
     }
 
     def __init__(self, device):
         super(Driver, self).__init__(device)
+
+    def get_version_text(self):
+        version_text = self.device.send("show version", timeout=120)
+        return version_text

@@ -29,7 +29,6 @@
 
 
 from collections import defaultdict
-from functools import partial
 
 from base import Protocol
 from ssh import SSH
@@ -48,4 +47,3 @@ protocol2object = defaultdict(
 
 def make_protocol(protocol_name, device):
     return protocol2object[protocol_name](device)
-

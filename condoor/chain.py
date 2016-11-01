@@ -32,8 +32,8 @@ from device import Device
 from hopinfo import make_hop_info_from_url
 
 from controller import Controller
-from condoor.exceptions import CommandSyntaxError
-import condoor
+from condoor.protocols import make_protocol
+from condoor.exceptions import ConnectionError
 
 from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
@@ -47,34 +47,24 @@ class Chain(object):
         self.target_device.driver_name = 'generic'
         self.target_device.is_target = True
 
+    def __repr__(self):
+        return str(self.devices)
+
     def connect(self):
+        device = None
         for device in self.devices:
+            protocol_name = device.get_protocol_name()
+            device.protocol = make_protocol(protocol_name, device)
+
             self.ctrl.spawn_session(device)
             if device.connect(self.ctrl):
                 logger.info("Connected to {}".format(device))
-                pass
             else:
-                return False
+                logger.debug("Connection error")
+                raise ConnectionError("Connection failed")
 
-        device.update_driver(device.prompt)
-        device.after_connect()
-
-        try:
-            device.prepare_terminal_session()
-        except CommandSyntaxError:
-            pass
-
-        device.get_version_text()
-        device.update_os_type()
-        device.update_os_version()
-
-        device.driver_name = device.os_type
-
-        device.prepare_terminal_session()
-
-        device.get_inventory_text()
-        device.update_family()
-        device.update_udi()
+        if device is None:
+            raise ConnectionError("No devices")
 
         return True
 
@@ -83,11 +73,36 @@ class Chain(object):
 
     @property
     def target_device(self):
-        return self.devices[-1]
+        try:
+            return self.devices[-1]
+        except IndexError:
+            return None
+
+    @property
+    def is_connected(self):
+        # TODO: get info from device/controller
+        return True
+
+    @property
+    def is_discovered(self):
+        if self.target_device is None:
+            return False
+
+        if None in (self.target_device.version_text, self.target_device.os_type, self.target_device.os_version,
+                    self.target_device.inventory_text, self.target_device.family, self.target_device.platform):
+            return False
+        return True
+
+    @property
+    def is_console(self):
+        if self.target_device is None:
+            return False
+
+        return self.target_device.is_console
 
     def get_previous_prompts(self, device):
         device_index = self.devices.index(device)
-        prompts = [re.compile("(?!x)x")] + [device.prompt_re for device in self.devices[:device_index]]
+        prompts = [re.compile("(?!x)x")] + [dev.prompt_re for dev in self.devices[:device_index]]
         return prompts
 
     def send(self, cmd, timeout, wait_for_string):
@@ -95,11 +110,19 @@ class Chain(object):
 
     def dump(self):
         for device in self.devices:
-            print(device.udi)
+            print("udi: {}".format(device.udi))
+            print("hostname: {}".format(device.hostname))
+            print("prompt: {}".format(device.prompt))
+            print("family: {}".format(device.family))
+            print("platform: {}".format(device.platform))
+            print("os: {}".format(device.os_type))
+            print("os ver: {}".format(device.os_version))
 
 
 def device_gen(chain, urls):
-    for url in urls:
-        yield Device(chain, make_hop_info_from_url(url))
-
-
+    it = iter(urls)
+    last = next(it)
+    for url in it:
+        yield Device(chain, make_hop_info_from_url(last), driver_name='jumphost', is_target=False)
+        last = url
+    yield Device(chain, make_hop_info_from_url(last), driver_name='generic', is_target=True)

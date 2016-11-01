@@ -168,9 +168,9 @@ class YPatternManager(PatternManager):
 
         return config
 
-#ypm = YPatternManager()
-#print(ypm.get_platform_based_on_prompt('[sysadmin-vm:0_RSP0:~]$'))
-#print(ypm.get_platform_based_on_prompt('sysadmin-vm:0_RSP0#'))
+# ypm = YPatternManager()
+# print(ypm.get_platform_based_on_prompt('[sysadmin-vm:0_RSP0:~]$'))
+# print(ypm.get_platform_based_on_prompt('sysadmin-vm:0_RSP0#'))
 
 # print(ypm.get_pattern("generic", "syntax_error", compiled=False))
 # print(ypm.get_pattern("generic", "syntax_error").pattern)

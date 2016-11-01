@@ -32,7 +32,7 @@ import pexpect
 import logging
 
 
-from condoor.exceptions import ConnectionError, ConnectionTimeoutError
+from condoor.exceptions import ConnectionError
 from condoor.utils import levenshtein_distance
 
 from os import getpid
@@ -49,7 +49,6 @@ class Protocol(object):
         self.password = self.device.node_info.password
         self.username = self.device.node_info.username
 
-        self.prompt = ''
         self.last_pattern = None
 
     def connect(self):

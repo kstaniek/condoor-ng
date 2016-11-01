@@ -27,7 +27,7 @@
 # =============================================================================
 
 from fsm import action
-from condoor.exceptions import ConnectionAuthenticationError
+from condoor.exceptions import ConnectionAuthenticationError, ConnectionError
 
 
 @action
@@ -67,6 +67,12 @@ def a_unable_to_connect(ctx):
 
 
 @action
+def a_standby_console(ctx):
+    ctx.device.is_console = True
+    raise ConnectionError("Standby console", ctx.ctrl.hostname)
+
+
+@action
 def a_disconnect(ctx):
     ctx.msg = "Device is reloading"
     ctx.ctrl.platform.disconnect()
@@ -100,7 +106,7 @@ def a_stays_connected(ctx):
 def a_unexpected_prompt(ctx):
     prompt = ctx.ctrl.after
     ctx.msg = "Received the jump host prompt: '{}'".format(prompt)
-    #ctx.ctrl.last_hop = ctx.detected_prompts.index(prompt)
+    # ctx.ctrl.last_hop = ctx.detected_prompts.index(prompt)
     ctx.device.connected = False
     return False
 
@@ -157,6 +163,6 @@ def a_store_cmd_result(ctx):
     index = result.find('\n')
     if index > 0:
         # remove first line
-        result = result[index+1:]
+        result = result[index + 1:]
     ctx.device.last_command_result = result.replace('\r', '')
     return True

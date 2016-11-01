@@ -26,10 +26,8 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
-import re
 import logging
 from generic import Driver as Generic
-from condoor import pattern_manager
 
 from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
@@ -41,15 +39,6 @@ class Driver(Generic):
     target_prompt_components = ['prompt_dynamic', 'prompt_default', 'calvados', 'lc']
     prepare_terminal_session = []
     families = {
-        "ASR9K": "ASR9K",
-        "ASR-9": "ASR9K",
-        "ASR9": "ASR9K",
-        "NCS-6": "NCS6K",
-        "NCS-4": "NCS4K",
-        "NCS-50": "NCS5K",
-        "NCS-55": "NCS5500",
-        "NCS1": "NCS1K",
-        "NCS-1": "NCS1K",
     }
 
     def __init__(self, device):
@@ -62,11 +51,11 @@ class Driver(Generic):
     def get_os_type(self, version_text):
         return 'Windriver'
 
-    def get_os_version(self, version_text):
-        match = re.search("Wind River Linux (\d+\.\d+\.\d+\.\d+)", version_text, re.MULTILINE)
-        if match:
-            return match.group(1)
-        return None
+    # def get_os_version(self, version_text):
+    #     match = re.search("Wind River Linux (\d+\.\d+\.\d+\.\d+)", version_text, re.MULTILINE)
+    #     if match:
+    #         return match.group(1)
+    #     return None
 
     # def update_driver(self, prompt):
     #     logger.debug(prompt)
@@ -76,7 +65,6 @@ class Driver(Generic):
     #         return platform
     #     else:
     #         return self.platform
-
 
     # def after_connect(self):
     #     show_users = self.device.send("show users", timeout=120)

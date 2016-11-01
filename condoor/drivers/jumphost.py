@@ -26,7 +26,14 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
+import re
+import logging
+
 from generic import Driver as Generic
+from condoor import pattern_manager, CommandError
+
+from os import getpid
+logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 class Driver(Generic):
@@ -38,9 +45,35 @@ class Driver(Generic):
     def __init__(self, device):
         super(Driver, self).__init__(device)
 
-    # def determine_hostname(self, prompt):
-    #     self.device.ctrl.send_command('hostname')
-    #     hostname_result = self.device.ctrl.after
-    #     print(hostname_result)
-    #     exit()
-    #     return hostname_result
+    def get_version_text(self):
+        version_text = self.device.send('uname -sr', timeout=10)
+        return version_text
+
+    def update_hostname(self, prompt):
+        if self.device.hostname_text:
+            return self.device.hostname_text.split('\n')[0]
+        else:
+            return None
+
+    def get_hostname_text(self):
+        # FIXME: fix it
+        hostname_text = None
+        try:
+            hostname_text = self.device.send('hostname', timeout=10)
+        except CommandError:
+            pass
+        return hostname_text
+
+    def make_dynamic_prompt(self, prompt):
+        patterns = [pattern_manager.get_pattern(
+            self.platform, pattern_name, compiled=False) for pattern_name in self.target_prompt_components]
+
+        patterns_re = "|".join(patterns).format(prompt=re.escape(prompt))
+
+        try:
+            prompt_re = re.compile(patterns_re)
+        except re.error as e:
+            raise RuntimeError("Pattern compile error: {} ({}:{})".format(e.message, self.platform, patterns_re))
+
+        logger.debug("Dynamic prompt: '{}'".format(prompt_re.pattern))
+        return prompt_re

@@ -66,15 +66,15 @@ class SSH(Protocol):
 
     def connect(self, driver):
         #                      0                    1                 2                 3
-        events = [driver.password_re, driver.prompt_re, driver.unable_to_connect_re,
+        events = [driver.password_re, self.device.prompt_re, driver.unable_to_connect_re,
                   #   4           5               6               7                   8
                   NEWSSHKEY, KNOWN_HOSTS, HOST_KEY_FAILED, MODULUS_TOO_SMALL, PROTOCOL_DIFFER,
-                  #      9
-                  pexpect.TIMEOUT]
+                  #      9              10
+                  driver.timeout_re, pexpect.TIMEOUT]
 
         transitions = [
             (driver.password_re, [0, 1, 4, 5], -1, partial(a_save_last_pattern, self), 0),
-            (driver.prompt_re, [0], -1, partial(a_save_last_pattern, self), 0),
+            (self.device.prompt_re, [0], -1, partial(a_save_last_pattern, self), 0),
             #  cover all messages indicating that connection was not set up
             (driver.unable_to_connect_re, [0], -1, a_unable_to_connect, 0),
             (NEWSSHKEY, [0], 1, partial(a_send_line, "yes"), 10),
@@ -84,27 +84,28 @@ class SSH(Protocol):
             (PROTOCOL_DIFFER, [0], 4, self.fallback_to_sshv1, 0),
             (PROTOCOL_DIFFER, [4], -1, ConnectionError("Protocol version differs", self.hostname), 0),
             (pexpect.TIMEOUT, [0], 5, partial(a_send, "\r\n"), 10),
-            (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0)
+            (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0),
+            (driver.timeout_re, [0], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0),
 
         ]
-        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(driver.prompt_re)))
+        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
         sm = FSM("SSH-CONNECT", self.device, events, transitions, timeout=30, searchwindowsize=160)
         return sm.run()
 
     def authenticate(self, driver):
         #              0                     1                    2                3
-        events = [driver.press_return_re, driver.password_re, driver.prompt_re, pexpect.TIMEOUT]
+        events = [driver.press_return_re, driver.password_re, self.device.prompt_re, pexpect.TIMEOUT]
 
         transitions = [
             (driver.press_return_re, [0, 1], 1, partial(a_send, "\r\n"), 10),
             (driver.password_re, [0], 1, partial(a_send_password, self._acquire_password()), 20),
             (driver.password_re, [1], -1, a_authentication_error, 0),
-            (driver.prompt_re, [0, 1], -1, None, 0),
+            (self.device.prompt_re, [0, 1], -1, None, 0),
             (pexpect.TIMEOUT, [1], -1,
              ConnectionError("Error getting device prompt") if self.device.is_target else partial(a_send, "\r\n"), 0)
         ]
 
-        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(driver.prompt_re)))
+        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
 
         sm = FSM("SSH-AUTH", self.device, events, transitions, init_pattern=self.last_pattern, timeout=30)
         sm.run()
@@ -115,6 +116,7 @@ class SSH(Protocol):
     def disconnect(self):
         self.device.sendline('\x03')
 
+    # FIXME: This needs to be fixed and tested
     @action
     def fallback_to_sshv1(self, ctx):
         command = self.get_command(version=1)

@@ -29,13 +29,10 @@
 from functools import partial
 import re
 import logging
-#from threading import Lock
 
 import pexpect
 
-from condoor.actions import a_send, a_connection_closed, a_stays_connected, a_unexpected_prompt, a_expected_prompt,\
-    a_expected_string_received
-
+from condoor.actions import a_send, a_connection_closed, a_stays_connected, a_unexpected_prompt, a_expected_prompt
 from condoor.fsm import FSM
 from condoor.exceptions import ConnectionError, CommandError, CommandSyntaxError, CommandTimeoutError
 from condoor.utils import pattern_to_str
@@ -49,6 +46,7 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 class Driver(object):
     platform = 'generic'
     inventory_cmd = None
+    users_cmd = None
     target_prompt_components = ['prompt_dynamic']
     prepare_terminal_session = ['terminal len 0']
     families = {}
@@ -57,6 +55,7 @@ class Driver(object):
 
         self.device = device
 
+        # FIXME: Do something with this, it's insane
         self.prompt_re = pattern_manager.get_pattern(self.platform, 'prompt')
         self.syntax_error_re = pattern_manager.get_pattern(self.platform, 'syntax_error')
         self.connection_closed_re = pattern_manager.get_pattern(self.platform, 'connection_closed')
@@ -68,13 +67,23 @@ class Driver(object):
         self.username_re = pattern_manager.get_pattern(self.platform, 'username')
         self.password_re = pattern_manager.get_pattern(self.platform, 'password')
         self.unable_to_connect_re = pattern_manager.get_pattern(self.platform, 'unable_to_connect')
+        self.timeout_re = pattern_manager.get_pattern(self.platform, 'timeout')
         self.standby_re = pattern_manager.get_pattern(self.platform, 'standby')
+
+        self.pid2platform_re = pattern_manager.get_pattern(self.platform, 'pid2platform')
+        self.platform_re = pattern_manager.get_pattern(self.platform, 'platform', compiled=False)
+        self.version_re = pattern_manager.get_pattern(self.platform, 'version', compiled=False)
+        self.vty_re = pattern_manager.get_pattern(self.platform, 'vty')
+        self.console_re = pattern_manager.get_pattern(self.platform, 'console')
+
+    def __repr__(self):
+        return str(self.platform)
 
     def get_version_text(self):
         try:
             version_text = self.device.send("show version brief", timeout=120)
         except CommandError:
-            # IOS Hack - need to check if show version brief is supported on IOS/IOSXE
+            # IOS Hack - need to check if show version brief is supported on IOS/IOS XE
             version_text = self.device.send("show version", timeout=120)
         return version_text
 
@@ -89,6 +98,20 @@ class Driver(object):
         else:
             logger.debug('No inventory command for {}'.format(self.platform))
         return inventory_text
+
+    def get_hostname_text(self):
+        return None
+
+    def get_users_text(self):
+        users_text = None
+        if self.users_cmd:
+            try:
+                users_text = self.device.send(self.users_cmd, timeout=60)
+            except CommandError:
+                logger.debug('Unable to collect connected users information')
+        else:
+            logger.debug('No users command for {}'.format(self.platform))
+        return users_text
 
     def get_os_type(self, version_text):
         os_type = None
@@ -114,16 +137,56 @@ class Driver(object):
         os_version = None
         if version_text is None:
             return os_version
-
-        match = re.search("Version (.*?)(?:\[| |$)", version_text, re.MULTILINE)
+        print(version_text)
+        match = re.search(self.version_re, version_text, re.MULTILINE)
         if match:
             os_version = match.group(1)
 
-        match = re.search("System version: (.*)", version_text, re.MULTILINE)
-        if match:
-            os_version = match.group(1)  # override for NX-OS
-
         return os_version
+
+    def get_hw_family(self, version_text):
+        family = None
+        if version_text is None:
+            return family
+
+        match = re.search(self.platform_re, version_text, re.MULTILINE)
+        if match:
+            logger.debug("Platform string: {}".format(match.group()))
+            family = match.group(2)
+            for key, value in self.families.items():
+                if family.startswith(key):
+                    family = value
+                    break
+        else:
+            logger.debug("Platform string not present. Refer to CSCux08958")
+        return family
+
+    def get_hw_platform(self, udi):
+        platform = None
+        try:
+            pid = udi['pid']
+            match = re.search(self.pid2platform_re, pid)
+            if match:
+                platform = match.group(1)
+        except KeyError:
+            pass
+        return platform
+
+    def is_console(self, users_text):
+        for line in users_text.split('\n'):
+            if '*' in line:
+                match = re.search(self.vty_re, line)
+                if match:
+                    logger.debug("Detected connection to vty")
+                    return False
+                else:
+                    match = re.search(self.console_re, line)
+                    if match:
+                        logger.debug("Detected connection to console")
+                        return True
+
+        logger.debug("Connection port unknown")
+        return None
 
     def update_driver(self, prompt):
         logger.debug(prompt)
@@ -164,8 +227,6 @@ class Driver(object):
 
         sm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
         return sm.run()
-
-
 
     def send_xml(self, command, timeout=60):
         """
@@ -234,7 +295,7 @@ class Driver(object):
         logger.debug("Dynamic prompt: '{}'".format(prompt_re.pattern))
         return prompt_re
 
-            # def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
+        # def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
     #     """This method instantiate and run the Finite State Machine for the current device connection. Here is the
     #     example of usage::
     #
@@ -334,7 +395,7 @@ class Driver(object):
 
         logger.debug("Mode: {}".format(mode))
         return mode
-    #
+
     def update_hostname(self, prompt):
         result = re.search(self.prompt_re, prompt)
         if result:
@@ -344,15 +405,3 @@ class Driver(object):
             hostname = 'not-set'
             logger.debug("Hostname not set: {}".format(prompt))
         return hostname
-    #
-    # def _debug(self, msg):
-    #     logger.debug("[{}]: {}".format(self.device.hostname, msg))
-    #
-    # def _error(self, msg):
-    #     logger.error("[{}]: {}".format(self.device.hostname, msg))
-    #
-    # def _info(self, msg):
-    #     logger.info("[{}]: {}".format(self.device.hostname, msg))
-    #
-    # def _warning(self, msg):
-    #     logger.warning("[{}]: {}".format(self.device.hostname, msg))

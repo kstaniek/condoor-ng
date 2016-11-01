@@ -27,7 +27,6 @@
 # =============================================================================
 
 from functools import partial
-import re
 import pexpect
 import logging
 from condoor.exceptions import CommandSyntaxError, CommandTimeoutError, ConnectionError
@@ -44,12 +43,13 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 class Driver(Generic):
     platform = 'eXR'
     inventory_cmd = 'admin show inventory chassis'
+    users_cmd = 'show users'
     target_prompt_components = ['prompt_dynamic', 'prompt_default', 'rommon', 'xml']
     prepare_terminal_session = ['terminal exec prompt no-timestamp', 'terminal len 0', 'terminal width 0']
     families = {
         "ASR9K": "ASR9K",
         "ASR-9": "ASR9K",
-        "ASR9" : "ASR9K",
+        "ASR9": "ASR9K",
         "NCS-6": "NCS6K",
         "NCS-4": "NCS4K",
         "NCS-50": "NCS5K",
@@ -125,4 +125,3 @@ class Driver(Generic):
 
         sm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
         return sm.run()
-

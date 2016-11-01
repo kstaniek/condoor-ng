@@ -30,5 +30,18 @@
 from connection import Connection
 from patterns import YPatternManager as PatternManager
 
+from condoor.exceptions import CommandTimeoutError, ConnectionError, ConnectionTimeoutError, CommandError, \
+    CommandSyntaxError, ConnectionAuthenticationError, GeneralError
 
 pattern_manager = PatternManager()
+
+__version__ = '2.0.0'
+
+"""
+This is a python module providing access to Cisco devices over Telnet and SSH.
+
+"""
+
+__all__ = ['Connection', 'FSM', 'TIMEOUT', 'action', 'pattern_manager',
+           'CommandTimeoutError', 'ConnectionError', 'ConnectionTimeoutError', 'CommandError',
+           'CommandSyntaxError', 'ConnectionAuthenticationError', 'GeneralError']

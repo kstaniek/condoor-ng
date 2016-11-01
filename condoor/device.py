@@ -26,13 +26,11 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
-import re
 import sys
 import logging
 import pexpect
 
-from condoor.protocols import make_protocol
-from condoor.exceptions import CommandError, ConnectionError, CommandSyntaxError, CommandTimeoutError
+from condoor.exceptions import ConnectionError, CommandSyntaxError, CommandTimeoutError
 from utils import parse_inventory
 
 
@@ -41,19 +39,19 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 class Device(object):
-    def __init__(self, chain, node_info):
+    def __init__(self, chain, node_info, driver_name='jumphost', is_target=False):
 
         self.chain = chain
-        self.hostname = "hostname-device"  # used by driver
+        self.hostname = "{}:{}".format(node_info.hostname, node_info.port)  # used by driver
 
         self.node_info = node_info
         self.ctrl = None
 
         # information whether the device is connected to the console
-        self.is_console = True
+        self.is_console = False
 
         # True is last device in the chain
-        self.is_target = False
+        self.is_target = is_target
 
         # prompt
         self.prompt = None
@@ -65,45 +63,120 @@ class Device(object):
         # inventory_text
         self.inventory_text = None
 
+        # hostname_text
+        self.hostname_text = None
+
+        # show users text
+        self.users_text = None
+
         # set if device is connect
         self.connected = False
 
         self.mode = None
 
-        protocol_name = self.node_info.protocol
-        if self.is_console:
-            protocol_name += '_console'
-
-        self.protocol = make_protocol(protocol_name, self)
-
-        self._driver_name = None
-        self.driver = None
-
-        self.driver = self.make_driver('jumphost')
+        self.protocol = None
+        self.driver = self.make_driver(driver_name)
 
         self.os_version = None
         self.os_type = None
         self.family = None
         self.platform = None
         self.udi = None
+        self.is_console = None
 
         self.last_command_result = None
+
+    @property
+    def device_info(self):
+        return {
+            'family': self.family,
+            'platform': self.platform,
+            'os_type': self.os_type,
+            'os_verison': self.os_version,
+            'udi': self.udi,
+            'driver_name': self.driver.platform,
+            'mode': self.mode,
+            'is_console': self.is_console,
+            'is_target': self.is_target,
+            'prompt': self.prompt,
+            'hostname': self.hostname,
+        }
 
     def __repr__(self):
         return str(self.node_info)
 
     def connect(self, ctrl):
+        if self.prompt_re is None:
+            self.prompt_re = self.driver.prompt_re
+
         self.ctrl = ctrl
+        # self.protocol.last_pattern = None
         if self.protocol.connect(self.driver):
             if self.protocol.authenticate(self.driver):
                 if not self.prompt:
                     self.prompt = self.protocol.detect_prompt()
                     self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
                 self.connected = True
+
+                if self.is_target is False:
+                    if self.version_text is None:
+                        self.get_version_text()
+                    if self.os_version is None:
+                        self.update_os_version()
+                    if self.hostname_text is None:
+                        self.get_hostname_text()
+                        self.update_hostname(self.prompt)
+                else:
+                    self._connected_to_target()
                 return True
 
         else:
             return False
+
+    def _connected_to_target(self):
+        self.update_driver(self.prompt)
+        self.after_connect()
+
+        try:
+            self.prepare_terminal_session()
+        except CommandSyntaxError:
+            pass
+
+        if self.version_text is None:
+            self.get_version_text()
+
+        if self.os_type is None:
+            self.update_os_type()
+
+        self.driver_name = self.os_type
+
+        if self.os_version is None:
+            self.update_os_version()
+
+        # delegate to device
+        self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
+
+        self.prepare_terminal_session()
+
+        if self.inventory_text is None:
+            self.get_inventory_text()
+
+        if self.udi is None:
+            self.update_udi()
+
+        if self.family is None:
+            self.update_family()
+
+        if self.platform is None:
+            self.update_platform()
+
+        if self.is_console is None:
+            self.get_users_text()
+            self.update_console()
+
+    def disconnect(self):
+        self.protocol = None
+        pass
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
         """
@@ -154,9 +227,13 @@ class Device(object):
                 raise ConnectionError("Unexpected session disconnect", host=self.hostname)
 
             if self.last_command_result:
-                return self.last_command_result.replace('\r', '')
+                output = self.last_command_result.replace('\r', '')
             else:
-                return self.ctrl.before.replace('\r', '')
+                output = self.ctrl.before.replace('\r', '')
+
+            second_line_index = output.find('\n') + 1
+            output = output[second_line_index:]
+            return output
 
         except CommandSyntaxError as e:
             logger.error("{}: '{}'".format(e.message, cmd))
@@ -202,36 +279,58 @@ class Device(object):
             return self.make_driver()
             # raise GeneralError("Platform {} not supported".format(driver_name))
 
+        logger.debug("Driver: {}".format(driver_class.platform))
         return driver_class(self)
 
     def get_previous_prompts(self):
         return self.chain.get_previous_prompts(self)
 
     def get_version_text(self):
+        logger.debug("Getting version text")
         self.version_text = self.driver.get_version_text()
+        if self.version_text:
+            logger.debug("Version text collected")
+        else:
+            logger.warn("Version text not collected")
+
+    def get_hostname_text(self):
+        logger.debug("Getting hostname text")
+        self.hostname_text = self.driver.get_hostname_text()
+        if self.hostname_text:
+            logger.debug("Hostname text collected")
+        else:
+            logger.warn("Hostname text not collected")
+
+    def get_inventory_text(self):
+        logger.debug("Getting inventory text")
+        self.inventory_text = self.driver.get_inventory_text()
+        if self.inventory_text:
+            logger.debug("Inventory text collected")
+        else:
+            logger.warn("Inventory text not collected")
+
+    def get_users_text(self):
+        logger.debug("Getting connected users text")
+        self.users_text = self.driver.get_users_text()
+        if self.users_text:
+            logger.debug("Users text collected")
+        else:
+            logger.warn("Users text not collected")
+
+    def get_protocol_name(self):
+        protocol_name = self.node_info.protocol
+        if self.is_console:
+            protocol_name += '_console'
+        return protocol_name
 
     def make_dynamic_prompt(self, prompt):
         if prompt:
             self.prompt_re = self.driver.make_dynamic_prompt(prompt)
 
-    def get_inventory_text(self):
-        logger.debug('Getting inventory')
-        self.inventory_text = self.driver.get_inventory_text()
-
     def update_udi(self):
+        logger.debug("Parsing inventory")
+        # TODO: Maybe validate if udi is complete
         self.udi = parse_inventory(self.inventory_text)
-        logger.debug("UDI Updated")
-
-        # if family not known update platform and family based on udi
-        if self.family is None:
-            pid = self.udi['pid']
-            for key, value in self.driver.families.items():
-                if pid.startswith(key):
-                    self.family = value
-                    self.platform = pid[:-3] if '-AC' in pid or '-DC' in pid else pid
-                    logger.debug("Family: {}".format(self.family))
-                    logger.debug("Platform: {}".format(self.platform))
-                    break
 
     def update_config_mode(self, prompt):
         self.mode = self.driver.update_config_mode(prompt)
@@ -251,33 +350,50 @@ class Device(object):
     def update_os_type(self):
         os_type = self.driver.get_os_type(self.version_text)
         if os_type:
-            logger.debug("OS Type: {}".format(os_type))
+            logger.debug("SW Type: {}".format(os_type))
             self.os_type = os_type
 
     def update_os_version(self):
         os_version = self.driver.get_os_version(self.version_text)
         if os_version:
-            logger.debug("OS Version: {}".format(os_version))
+            logger.debug("SW Version: {}".format(os_version))
             self.os_version = os_version
 
     def update_family(self):
-        if self.version_text is None:
-            return
+        family = self.driver.get_hw_family(self.version_text)
+        if family:
+            logger.debug("HW Family: {}".format(family))
+            self.family = family
 
-        match = re.search("^(  )?cisco (.*?) ", self.version_text, re.MULTILINE)  # NX-OS
-        if match:
-            logger.debug("Platform string: {}".format(match.group()))
-            self.family = self.platform = match.group(2)
+    def update_platform(self):
+        platform = self.driver.get_hw_platform(self.udi)
+        if platform:
+            logger.debug("HW Platform: {}".format(platform))
+            self.platform = platform
 
-            for key, value in self.driver.families.items():
-                if self.family.startswith(key):
-                    self.family = value
-                    break
-        else:
-            logger.debug("Platform string not present. Refer to CSCux08958")
+    def update_console(self):
+        is_console = self.driver.is_console(self.users_text)
+        if is_console is not None:
+            self.is_console = is_console
 
-        logger.debug("Family: {}".format(self.family))
-        logger.debug("Platform: {}".format(self.platform))
+        # print(self.driver.platform)
+        # if self.version_text is None:
+        #     return
+        #
+        # match = re.search("^(  )?cisco (.*?) ", self.version_text, re.MULTILINE)  # NX-OS
+        # if match:
+        #     logger.debug("Platform string: {}".format(match.group()))
+        #     self.family = self.platform = match.group(2)
+        #
+        #     for key, value in self.driver.families.items():
+        #         if self.family.startswith(key):
+        #             self.family = value
+        #             break
+        # else:
+        #     logger.debug("Platform string not present. Refer to CSCux08958")
+        #
+        # logger.debug("Family: {}".format(self.family))
+        # logger.debug("Platform: {}".format(self.platform))
 
     def after_connect(self):
         return self.driver.after_connect()

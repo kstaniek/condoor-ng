@@ -35,7 +35,7 @@ from base import Protocol
 from condoor.fsm import FSM
 from condoor.utils import pattern_to_str
 from condoor.actions import a_send, a_send_line, a_send_password, a_authentication_error, a_unable_to_connect,\
-    a_save_last_pattern
+    a_save_last_pattern, a_standby_console
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
@@ -62,35 +62,36 @@ class Telnet(Protocol):
         #              0            1                              2                      3
         events = [ESCAPE_CHAR, driver.press_return_re, driver.standby_re, driver.username_re,
                   #            4                   5                  6                     7
-                  driver.password_re, driver.more_re, driver.prompt_re, driver.rommon_re,
-                  #       8                              9              10
-                  driver.unable_to_connect_re, pexpect.TIMEOUT, PASSWORD_OK]
+                  driver.password_re, driver.more_re, self.device.prompt_re, driver.rommon_re,
+                  #       8                              9              10            11
+                  driver.unable_to_connect_re, driver.timeout_re, pexpect.TIMEOUT, PASSWORD_OK]
 
         transitions = [
             (ESCAPE_CHAR, [0], 1, None, 20),
             (driver.press_return_re, [0, 1], 1, partial(a_send, "\r\n"), 10),
             (PASSWORD_OK, [0, 1], 1, partial(a_send, "\r\n"), 10),
-            (driver.standby_re, [0, 5], -1, ConnectionError("Standby console", self.hostname), 0),
+            (driver.standby_re, [0, 5], -1, partial(a_standby_console), 0),
             (driver.username_re, [0, 1, 5, 6], -1, partial(a_save_last_pattern, self), 0),
             (driver.password_re, [0, 1, 5], -1, partial(a_save_last_pattern, self), 0),
             (driver.more_re, [0, 5], 7, partial(a_send, "q"), 10),
             # router sends it again to delete
             (driver.more_re, [7], 8, None, 10),
             # (prompt, [0, 1, 5], 6, partial(a_send, "\r\n"), 10),
-            (driver.prompt_re, [0, 1, 5], 0, None, 10),
-            (driver.prompt_re, [6, 8, 5], -1, partial(a_save_last_pattern, self), 0),
+            (self.device.prompt_re, [0, 1, 5], 0, None, 10),
+            (self.device.prompt_re, [6, 8, 5], -1, partial(a_save_last_pattern, self), 0),
             (driver.rommon_re, [0, 1, 5], -1, partial(a_save_last_pattern, self), 0),
             (driver.unable_to_connect_re, [0, 1], -1, a_unable_to_connect, 0),
+            (driver.timeout_re, [0, 1], -1, ConnectionTimeoutError("Connection Timeout", self.hostname), 0),
             (pexpect.TIMEOUT, [0, 1], 5, partial(a_send, "\r\n"), 10),
             (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0)
         ]
-        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(driver.prompt_re)))
+        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
         sm = FSM("TELNET-CONNECT", self.device, events, transitions, init_pattern=self.last_pattern)
         return sm.run()
 
     def authenticate(self, driver):
         #                      0                      1                    2                    3
-        events = [driver.username_re, driver.password_re, driver.prompt_re, driver.rommon_re,
+        events = [driver.username_re, driver.password_re, self.device.prompt_re, driver.rommon_re,
                   #       4             5             6              7                8
                   driver.unable_to_connect_re, AUTH_FAILED, pexpect.TIMEOUT, pexpect.EOF]
 
@@ -100,7 +101,7 @@ class Telnet(Protocol):
             (driver.password_re, [0, 1], 2, partial(a_send_password, self._acquire_password()), 20),
             (driver.username_re, [2], -1, a_authentication_error, 0),
             (driver.password_re, [2], -1, a_authentication_error, 0),
-            (driver.prompt_re, [0, 1, 2], -1, None, 0),
+            (self.device.prompt_re, [0, 1, 2], -1, None, 0),
             (driver.rommon_re, [0], -1, partial(a_send, "\r\n"), 0),
             (pexpect.TIMEOUT, [0], 1, partial(a_send, "\r\n"), 10),
             (pexpect.TIMEOUT, [2], -1, None, 0),
@@ -108,7 +109,7 @@ class Telnet(Protocol):
             (pexpect.TIMEOUT, [3, 7], -1, ConnectionTimeoutError("Connection Timeout", self.hostname), 0),
             (driver.unable_to_connect_re, [0, 1, 2], -1, a_unable_to_connect, 0),
         ]
-        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(driver.prompt_re)))
+        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
         sm = FSM("TELNET-AUTH", self.device, events, transitions, init_pattern=self.last_pattern)
         self.try_read_prompt(1)
         return sm.run()
@@ -124,9 +125,9 @@ class TelnetConsole(Telnet):
         #              0            1                    2                      3
         events = [ESCAPE_CHAR, driver.press_return_re, driver.standby_re, driver.username_re,
                   #            4                   5            6                     7
-                  driver.password_re, driver.more_re, driver.prompt_re, driver.rommon_re,
-                  #       8                 9              10             11
-                  driver.unable_to_connect_re, pexpect.TIMEOUT, PASSWORD_OK]
+                  driver.password_re, driver.more_re, self.device.prompt_re, driver.rommon_re,
+                  #       8                           9              10             11
+                  driver.unable_to_connect_re, driver.timeout_re, pexpect.TIMEOUT, PASSWORD_OK]
 
         transitions = [
             (ESCAPE_CHAR, [0], 1, partial(a_send, "\r\n"), 20),
@@ -139,13 +140,14 @@ class TelnetConsole(Telnet):
             # router sends it again to delete
             (driver.more_re, [7], 8, None, 10),
             # (prompt, [0, 1, 5], 6, partial(a_send, "\r\n"), 10),
-            (driver.prompt_re, [0, 1, 5], 0, None, 10),
-            (driver.prompt_re, [6, 8, 5], -1, partial(a_save_last_pattern, self), 0),
+            (self.device.prompt_re, [0, 1, 5], 0, None, 10),
+            (self.device.prompt_re, [6, 8, 5], -1, partial(a_save_last_pattern, self), 0),
             (driver.rommon_re, [0, 1, 5], -1, partial(a_save_last_pattern, self), 0),
             (driver.unable_to_connect_re, [0, 1], -1, a_unable_to_connect, 0),
+            (driver.timeout_re, [0, 1], -1, ConnectionTimeoutError("Connection Timeout", self.hostname), 0),
             (pexpect.TIMEOUT, [0, 1], 5, partial(a_send, "\r\n"), 10),
             (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0)
         ]
-        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(driver.prompt_re)))
+        logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
         sm = FSM("TELNET-CONNECT-CONSOLE", self.device, events, transitions, init_pattern=self.last_pattern)
         return sm.run()

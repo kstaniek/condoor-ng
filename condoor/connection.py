@@ -28,16 +28,22 @@
 
 import re
 import os
+import shelve
 import logging
+from hashlib import md5
 
 from condoor.utils import FilteredFile, normalize_urls, make_handler
 from collections import deque
 from chain import Chain
-
+from condoor.exceptions import ConnectionError
 from os import getpid
+
+from condoor import __version__
+
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
-__version__ = "2.0.0"
+
+_cache_file = "/tmp/condoor.shelve"
 
 
 class Connection(object):
@@ -48,9 +54,11 @@ class Connection(object):
 
         self.log_session = log_session
 
-        self._handler = make_handler(log_dir, log_level)
         top_logger = logging.getLogger("{}-{}".format(getpid(), 'condoor'))
-        top_logger.addHandler(self._handler)
+        if not len(top_logger.handlers):
+            self._handler = make_handler(log_dir, log_level)
+            top_logger.addHandler(self._handler)
+
         top_logger.setLevel(log_level)
 
         self.session_fd = self._make_session_fd(log_dir)
@@ -79,6 +87,23 @@ class Connection(object):
 
         return session_fd
 
+    def _get_key(self):
+        m = md5()
+        m.update(str(self.connection_chains))
+        return m.hexdigest()
+
+    def _write_cache(self):
+        try:
+            cache = shelve.open(_cache_file, 'c')
+        except Exception:
+            logger.error("Unable to open a cache file for write")
+            return
+
+        key = self._get_key()
+        cache[key] = self.device_description_record
+        logger.info("Device description record cached: {}".format(key))
+        cache.close()
+
     def connect(self, logfile=None):
         """This method connects to the device.
 
@@ -100,15 +125,20 @@ class Connection(object):
 
         chain_indices = deque(range(len(self.connection_chains)))
         chain_indices.rotate(self._last_chain_index)
-
+        excpt = ConnectionError("Unable to connect to the device")
         for index in chain_indices:
             chain = self.connection_chains[index]
-            if chain.connect():
-                self._last_chain_index = index
-                break
-
+            self._last_chain_index = index
+            try:
+                if chain.connect():
+                    break
+            except ConnectionError as e:
+                excpt = e
         else:
-            print("Error")
+            # invalidate cache
+            raise excpt
+
+        self._write_cache()
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
         """
@@ -173,6 +203,30 @@ class Connection(object):
     @property
     def _chain(self):
         return self.connection_chains[self._last_chain_index]
+
+    @property
+    def is_connected(self):
+        """Returns boolean value. *True* if target device is connected, *False* if not connected"""
+        try:
+            return self._chain.is_connected
+        except AttributeError:
+            return False
+
+    @property
+    def is_discovered(self):
+        return self._chain.is_discovered
+
+    @property
+    def is_console(self):
+        return self._chain.is_console
+
+    @property
+    def prompt(self):
+        return self._chain.target_device.prompt
+
+    @property
+    def hostname(self):
+        return self._chain.target_device.hostname
 
     @property
     def os_type(self):
@@ -251,22 +305,12 @@ class Connection(object):
             }
 
         """
-        _device_info = {
-            'family': self.family,
-            'platform': self.platform,
-            'os_type': self.os_type,
-            'os_version': self.os_version
-        }
-        return _device_info
+        return self._chain.target_device.device_info
 
     @property
     def device_description_record(self):
         return {
-            'device_info': self.device_info,
-            'udi': self.udi,
-            'hostname': self.hostname,
-            'console': self.is_console,
-            'device_prompt': self.prompt,
-            'detected_prompts': [prompt for prompt in self._driver.detected_prompts],
-            'last_driver': self._last_driver_index
+            'connections': [{'device_info': [device.device_info for device in chain.devices]}
+                            for chain in self.connection_chains],
+            'last_chain': self._last_chain_index,
         }
