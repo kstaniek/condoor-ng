@@ -57,17 +57,18 @@ class Device(object):
         self.prompt = None
         self.prompt_re = None
 
+        # properties with getter to collect in case None
         # version_text
-        self.version_text = None
+        self._version_text = None
 
         # inventory_text
-        self.inventory_text = None
+        self._inventory_text = None
 
         # hostname_text
-        self.hostname_text = None
+        self._hostname_text = None
 
         # show users text
-        self.users_text = None
+        self._users_text = None
 
         # set if device is connect
         self.connected = False
@@ -119,13 +120,10 @@ class Device(object):
                 self.connected = True
 
                 if self.is_target is False:
-                    if self.version_text is None:
-                        self.get_version_text()
                     if self.os_version is None:
                         self.update_os_version()
-                    if self.hostname_text is None:
-                        self.get_hostname_text()
-                        self.update_hostname(self.prompt)
+
+                    self.update_hostname()
                 else:
                     self._connected_to_target()
                 return True
@@ -142,9 +140,6 @@ class Device(object):
         except CommandSyntaxError:
             pass
 
-        if self.version_text is None:
-            self.get_version_text()
-
         if self.os_type is None:
             self.update_os_type()
 
@@ -158,9 +153,6 @@ class Device(object):
 
         self.prepare_terminal_session()
 
-        if self.inventory_text is None:
-            self.get_inventory_text()
-
         if self.udi is None:
             self.update_udi()
 
@@ -171,8 +163,15 @@ class Device(object):
             self.update_platform()
 
         if self.is_console is None:
-            self.get_users_text()
             self.update_console()
+
+        self.enable(self._get_enable_password())
+
+    def _get_enable_password(self):
+        enable_password = self.node_info.enable_password
+        if enable_password is None:
+            enable_password = self.node_info.password
+        return enable_password
 
     def disconnect(self):
         self.protocol = None
@@ -285,37 +284,50 @@ class Device(object):
     def get_previous_prompts(self):
         return self.chain.get_previous_prompts(self)
 
-    def get_version_text(self):
-        logger.debug("Getting version text")
-        self.version_text = self.driver.get_version_text()
-        if self.version_text:
-            logger.debug("Version text collected")
-        else:
-            logger.warn("Version text not collected")
+    @property
+    def version_text(self):
+        if self._version_text is None:
+            logger.debug("Collecting version information")
+            self._version_text = self.driver.get_version_text()
+            if self._version_text:
+                logger.debug("Version info collected")
+            else:
+                logger.warn("Version info not collected")
 
-    def get_hostname_text(self):
-        logger.debug("Getting hostname text")
-        self.hostname_text = self.driver.get_hostname_text()
-        if self.hostname_text:
-            logger.debug("Hostname text collected")
-        else:
-            logger.warn("Hostname text not collected")
+        return self._version_text
 
-    def get_inventory_text(self):
-        logger.debug("Getting inventory text")
-        self.inventory_text = self.driver.get_inventory_text()
-        if self.inventory_text:
-            logger.debug("Inventory text collected")
-        else:
-            logger.warn("Inventory text not collected")
+    @property
+    def hostname_text(self):
+        if self._hostname_text is None:
+            logger.debug("Collecting hostname information")
+            self._hostname_text = self.driver.get_hostname_text()
+            if self._hostname_text:
+                logger.debug("Hostname info collected")
+            else:
+                logger.warn("Hostname info not collected")
+        return self._hostname_text
 
-    def get_users_text(self):
-        logger.debug("Getting connected users text")
-        self.users_text = self.driver.get_users_text()
-        if self.users_text:
-            logger.debug("Users text collected")
-        else:
-            logger.warn("Users text not collected")
+    @property
+    def inventory_text(self):
+        if self._inventory_text is None:
+            logger.debug("Collecting inventory information")
+            self._inventory_text = self.driver.get_inventory_text()
+            if self._inventory_text:
+                logger.debug("Inventory info collected")
+            else:
+                logger.warn("Inventory info not collected")
+        return self._inventory_text
+
+    @property
+    def users_text(self):
+        if self._users_text is None:
+            logger.debug("Getting connected users text")
+            self._users_text = self.driver.get_users_text()
+            if self._users_text:
+                logger.debug("Users text collected")
+            else:
+                logger.warn("Users text not collected")
+        return self._users_text
 
     def get_protocol_name(self):
         protocol_name = self.node_info.protocol
@@ -332,11 +344,11 @@ class Device(object):
         # TODO: Maybe validate if udi is complete
         self.udi = parse_inventory(self.inventory_text)
 
-    def update_config_mode(self, prompt):
-        self.mode = self.driver.update_config_mode(prompt)
+    def update_config_mode(self):
+        self.mode = self.driver.update_config_mode(self.prompt)
 
-    def update_hostname(self, prompt):
-        self.hostname = self.driver.update_hostname(prompt)
+    def update_hostname(self):
+        self.hostname = self.driver.update_hostname(self.prompt)
 
     def update_driver(self, prompt):
         logger.debug("{}: New prompt '{}'".format(self.driver.platform, prompt))
@@ -376,24 +388,9 @@ class Device(object):
         if is_console is not None:
             self.is_console = is_console
 
-        # print(self.driver.platform)
-        # if self.version_text is None:
-        #     return
-        #
-        # match = re.search("^(  )?cisco (.*?) ", self.version_text, re.MULTILINE)  # NX-OS
-        # if match:
-        #     logger.debug("Platform string: {}".format(match.group()))
-        #     self.family = self.platform = match.group(2)
-        #
-        #     for key, value in self.driver.families.items():
-        #         if self.family.startswith(key):
-        #             self.family = value
-        #             break
-        # else:
-        #     logger.debug("Platform string not present. Refer to CSCux08958")
-        #
-        # logger.debug("Family: {}".format(self.family))
-        # logger.debug("Platform: {}".format(self.platform))
-
     def after_connect(self):
+        # TODO: Check if still in use
         return self.driver.after_connect()
+
+    def enable(self, enable_password):
+        self.driver.enable(enable_password)

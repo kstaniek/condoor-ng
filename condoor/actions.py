@@ -115,8 +115,8 @@ def a_unexpected_prompt(ctx):
 def a_expected_prompt(ctx):
     prompt = ctx.ctrl.after
     ctx.device.update_driver(prompt)
-    ctx.device.update_config_mode(prompt)
-    ctx.device.update_hostname(prompt)
+    ctx.device.update_config_mode()
+    ctx.device.update_hostname()
     ctx.finished = True
     return True
 

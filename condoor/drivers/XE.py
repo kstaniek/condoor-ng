@@ -28,19 +28,16 @@
 
 import logging
 
-from generic import Driver as Generic
+from IOS import Driver as IOSDriver
 from condoor import pattern_manager
 
 from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
-class Driver(Generic):
+# based on IOS driver
+class Driver(IOSDriver):
     platform = 'XE'
-    inventory_cmd = 'show inventory'
-    users_cmd = 'show users'
-    target_prompt_components = ['prompt_dynamic', 'prompt_default', 'rommon']
-    prepare_terminal_session = ['terminal len 0', 'terminal width 0']
     families = {
         "ASR-9": "ASR900",
     }
@@ -55,7 +52,7 @@ class Driver(Generic):
     def update_driver(self, prompt):
         logger.debug(prompt)
         platform = pattern_manager.get_platform_based_on_prompt(prompt)
-        # to avoid the XR platform detection as eXR and XR prompts are the same
+        # to avoid the XE platform detection as IOS and XE and IOS prompts are the same
         if platform == 'IOS':
             platform = 'XE'
 

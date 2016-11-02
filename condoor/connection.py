@@ -37,8 +37,7 @@ from collections import deque
 from chain import Chain
 from condoor.exceptions import ConnectionError
 from os import getpid
-
-from condoor import __version__
+import condoor
 
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
@@ -62,7 +61,7 @@ class Connection(object):
         top_logger.setLevel(log_level)
 
         self.session_fd = self._make_session_fd(log_dir)
-        logger.info("Condoor version {}".format(__version__))
+        logger.info("Condoor version {}".format(condoor.__version__))
 
         self.connection_chains = [Chain(self, url_list) for url_list in normalize_urls(urls)]
 
@@ -176,29 +175,20 @@ class Connection(object):
                 The session is logged only if ``log_session=True`` was passed to the constructor.
                 It the parameter is not passed then the default *session.log* file is created in `log_dir`.
 
-
-        no_hosts = len(self._nodes)
-        result = False
-        for i in xrange(no_hosts):
-            try:
-                result = self._driver.connect(logfile=self._session_fd)
-                break
-            except ConnectionError as e:
-                # if this is last try raise the exception
-                if (i + 1) == no_hosts:
-                    raise e
-                else:
-                    self._shift_driver()
-            except AttributeError:
-                raise ConnectionError("Platform unknown. Try detect platform first")
-
-        else:
-            # This will never be executed
-            raise ConnectionError("Unable to connect to the device")
-
         """
         logger.info("Device discovery process started")
+        #
         self.connect(logfile=logfile)
+
+    def enable(self, enable_password=None):
+        """This method changes the device mode to privileged. If device does not support privileged mode the
+        the informational message to the log will be posted.
+
+        Args:
+            enable_password (str): The privileged mode password. This is optional parameter. If password is not
+                provided but required the password from url will be used. Refer to :class:`condoor.Connection`
+        """
+        self._chain.target_device.enable(enable_password)
 
     @property
     def _chain(self):
@@ -206,11 +196,7 @@ class Connection(object):
 
     @property
     def is_connected(self):
-        """Returns boolean value. *True* if target device is connected, *False* if not connected"""
-        try:
-            return self._chain.is_connected
-        except AttributeError:
-            return False
+        return self._chain.is_connected
 
     @property
     def is_discovered(self):
@@ -296,7 +282,7 @@ class Connection(object):
 
     @property
     def device_info(self):
-        """Returns the dict representing the device info record::
+        """Returns the dict representing the target device info record::
             {
             'family': 'ASR9K',
             'os_type': 'eXR',

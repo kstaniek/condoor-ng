@@ -228,6 +228,9 @@ class Driver(object):
         sm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
         return sm.run()
 
+    def enable(self, enable_password):
+        logger.info("Privileged mode not supported on {} platform".format(self.platform))
+
     def send_xml(self, command, timeout=60):
         """
         Handle error i.e.
