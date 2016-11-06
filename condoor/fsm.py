@@ -43,7 +43,7 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 def action(func):
     @wraps(func)
     def with_logging(*args, **kwargs):
-        logger.debug("A={}".format(func.__name__))
+        logger.debug("A={}".format(func.__doc__))
         return func(*args, **kwargs)
     return with_logging
 
