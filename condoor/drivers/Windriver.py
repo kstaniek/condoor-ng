@@ -26,10 +26,10 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
-import logging
-from generic import Driver as Generic
-
 from os import getpid
+import logging
+from condoor.drivers.generic import Driver as Generic
+
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 

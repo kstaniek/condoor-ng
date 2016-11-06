@@ -30,10 +30,9 @@ import re
 import pexpect
 import logging
 
-from base import Protocol
-
 from condoor.fsm import FSM
 from condoor.utils import pattern_to_str
+from condoor.protocols.base import Protocol
 from condoor.actions import a_send, a_send_line, a_send_password, a_authentication_error, a_unable_to_connect,\
     a_save_last_pattern, a_standby_console
 
@@ -86,8 +85,8 @@ class Telnet(Protocol):
             (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0)
         ]
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
-        sm = FSM("TELNET-CONNECT", self.device, events, transitions, init_pattern=self.last_pattern)
-        return sm.run()
+        fsm = FSM("TELNET-CONNECT", self.device, events, transitions, init_pattern=self.last_pattern)
+        return fsm.run()
 
     def authenticate(self, driver):
         #                      0                      1                    2                    3
@@ -110,14 +109,14 @@ class Telnet(Protocol):
             (driver.unable_to_connect_re, [0, 1, 2], -1, a_unable_to_connect, 0),
         ]
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
-        sm = FSM("TELNET-AUTH", self.device, events, transitions, init_pattern=self.last_pattern)
+        fsm = FSM("TELNET-AUTH", self.device, events, transitions, init_pattern=self.last_pattern)
         self.try_read_prompt(1)
-        return sm.run()
+        return fsm.run()
 
-    def disconnect(self):
-        # self.ctrl.sendcontrol(']')
-        # self.ctrl.sendline('quit')
-        self.ctrl.send(chr(4))
+    # def disconnect(self):
+    #     # self.ctrl.sendcontrol(']')
+    #     # self.ctrl.sendline('quit')
+    #     self.ctrl.send(chr(4))
 
 
 class TelnetConsole(Telnet):

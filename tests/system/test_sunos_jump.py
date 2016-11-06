@@ -70,6 +70,7 @@ class TestSunConnection(TestCase):
 
         with self.assertRaises(condoor.ConnectionTimeoutError):
             conn.connect(self.logfile_condoor)
+        print(conn.device_description_record)
 
     def test_sun_connection_wrong_passowrd(self):
         urls = ["telnet://admin:wrong@127.0.0.1:10023", "telnet://admin:admin@host1"]

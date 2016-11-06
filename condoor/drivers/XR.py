@@ -27,7 +27,7 @@
 # =============================================================================
 
 
-from generic import Driver as Generic
+from condoor.drivers.generic import Driver as Generic
 
 
 class Driver(Generic):

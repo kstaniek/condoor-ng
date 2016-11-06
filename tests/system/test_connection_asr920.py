@@ -88,7 +88,7 @@ class TestASR920Connection(TestCase):
         self.assertEqual(conn.udi['pid'], "ASR-920-12CZ-A", "Wrong PID: {}".format(conn.udi['pid']))
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
         self.assertEqual(conn.udi['sn'], "CAT1928U2YX", "Wrong S/N: {}".format(conn.udi['sn']))
-        self.assertEqual(conn.prompt, "CSG-5502-ASR920>", "Wrong Prompt: {}".format(conn.prompt))
+        self.assertEqual(conn.prompt, "CSG-5502-ASR920#", "Wrong Prompt: {}".format(conn.prompt))
         with self.assertRaises(condoor.CommandSyntaxError):
             conn.send("wrongcommand")
 
@@ -113,7 +113,7 @@ class TestASR920Connection(TestCase):
         self.assertEqual(conn.udi['pid'], "ASR-920-12CZ-A", "Wrong PID: {}".format(conn.udi['pid']))
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
         self.assertEqual(conn.udi['sn'], "CAT1928U2YX", "Wrong S/N: {}".format(conn.udi['sn']))
-        self.assertEqual(conn.prompt, "CSG-5502-ASR920>", "Wrong Prompt: {}".format(conn.prompt))
+        self.assertEqual(conn.prompt, "CSG-5502-ASR920#", "Wrong Prompt: {}".format(conn.prompt))
         with self.assertRaises(condoor.CommandSyntaxError):
             conn.send("wrongcommand")
 

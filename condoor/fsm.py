@@ -27,15 +27,16 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
+from os import getpid
+from inspect import isclass
 from functools import wraps
 import logging
 from time import time
+
 from pexpect import EOF
 from condoor.exceptions import ConnectionError
 from condoor.utils import pattern_to_str
-from inspect import isclass
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
@@ -82,13 +83,14 @@ class FSM(object):
         """
 
     class Context(object):
-        _slots__ = ['fsm_name', 'ctrl', 'event', 'state', 'finished', 'msg']
+        _slots__ = ('fsm_name', 'ctrl', 'event', 'state', 'finished', 'msg', 'pattern')
         fsm_name = "FSM"
         ctrl = None
         event = None
         state = 0
         finished = False
         msg = ""
+        pattern = None
 
         def __init__(self, fsm_name, device):
             """This is a class constructor.

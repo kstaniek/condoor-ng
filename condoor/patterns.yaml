@@ -11,7 +11,7 @@ generic:
   # to capture the platform string from show version
   pid2platform: '([A-Z]{3}[-| ]?[0-9]{3,4})'
   # platform string
-  platform: '^(  )?cisco (.*?) '
+  platform: '^(?:  )?cisco (.*?) '
   version: 'Version (.*?)(?:\[| |$)'
   vty: 'vty'
   console: 'con|aux'
@@ -114,6 +114,9 @@ IOS:
   password: 'Password: '
   username: 'Username: '
   standby: 'Standby console disabled'
+  platform: '^[Cc]isco (.*?)(?: .*) processor'
+  pid2platform: '^([A-Z0-9]*)-'
+  version: 'Version (.*?),?(?:\[| |$)'
   syntax_error:
     pattern: '% Bad IP address or host name% Unknown command or computer name, or unable to find computer address|% Invalid input detected at ''\^'' marker\.|% Type "show \?" for a list of subcommands|% Ambiguous command:|% Incomplete command\.'
     description: 'Command syntax error'

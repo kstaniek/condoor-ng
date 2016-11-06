@@ -30,9 +30,9 @@ from functools import partial
 import pexpect
 import logging
 
-from base import Protocol
 from condoor.fsm import FSM, action
 from condoor.utils import pattern_to_str
+from condoor.protocols.base import Protocol
 from condoor.actions import a_send_password, a_authentication_error, a_send, a_unable_to_connect, a_save_last_pattern,\
     a_send_line
 
@@ -107,8 +107,8 @@ class SSH(Protocol):
 
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
 
-        sm = FSM("SSH-AUTH", self.device, events, transitions, init_pattern=self.last_pattern, timeout=30)
-        sm.run()
+        fsm = FSM("SSH-AUTH", self.device, events, transitions, init_pattern=self.last_pattern, timeout=30)
+        fsm.run()
 
         self.try_read_prompt(1)
         return True

@@ -51,13 +51,13 @@ class Protocol(object):
 
         self.last_pattern = None
 
-    def connect(self):
+    def connect(self, device):
         """
         Protocol specific implementation
         """
         raise NotImplementedError("Connection method not implemented")
 
-    def authenticate(self):
+    def authenticate(self, device):
         """
         Protocol specific implementation
         """
@@ -148,6 +148,7 @@ class Protocol(object):
         return None
 
     def _acquire_password(self):
+        # TODO: Remove
         password = self.password
         # if not password:
         #     if self.account_manager:

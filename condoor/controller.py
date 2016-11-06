@@ -1,38 +1,11 @@
-# =============================================================================
-#
-# Copyright (c) 2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
-
+"""Provides the Controller class which is a wrapper to the pyexpect.spawn class."""
 import logging
 import pexpect
+from os import getpid
 
-from utils import delegate
+from condoor.utils import delegate
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
@@ -40,7 +13,10 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 @delegate("_session", ("expect", "expect_exact", "expect_list", "compile_pattern_list", "sendline",
                        "isalive", "sendcontrol", "send", "read_nonblocking", "setecho"))
 class Controller(object):
+    """Controller class which wraps the pyexpect.spawn class."""
+
     def __init__(self, connection):
+        """Initialize the Controller object for specific connection."""
         # delegated pexpect session
         self._session = None
         self._connection = connection
@@ -48,20 +24,18 @@ class Controller(object):
         self._logfile_fd = connection.session_fd
         self.connected = False
         self.authenticated = False
+        # FIXME: consider the hostname
         self.hostname = 'ctrl-hostname'
         self.last_hop = 0
 
-    def spawn_session(self, device):
-
-        protocol = device.protocol
-        command = protocol.get_command()
-
+    def spawn_session(self, command):
+        """Spawn the session using proper command."""
         logger.debug("Executing command: '{}'".format(command))
-        if self._session and self.isalive():
+        if self._session and self.isalive():  # pylint: disable=no-member
             try:
-                self.send(command)
-                self.expect_exact(command, timeout=20)
-                self.sendline()
+                self.send(command)  # pylint: disable=no-member
+                self.expect_exact(command, timeout=20)  # pylint: disable=no-member
+                self.sendline()  # pylint: disable=no-member
 
             except pexpect.EOF:
                 raise ConnectionError("Connection error", self.hostname)
@@ -94,34 +68,31 @@ class Controller(object):
             self._session.logfile_read = self._logfile_fd
 
     def send_command(self, cmd):
-        self.setecho(False)
-        self.send(cmd)
-        self.expect_exact([cmd, pexpect.TIMEOUT], timeout=15)
-        self.sendline()
-        self.setecho(True)
+        """Send command."""
+        self.setecho(False)  # pylint: disable=no-member
+        self.send(cmd)  # pylint: disable=no-member
+        self.expect_exact([cmd, pexpect.TIMEOUT], timeout=15)  # pylint: disable=no-member
+        self.sendline()  # pylint: disable=no-member
+        self.setecho(True)  # pylint: disable=no-member
 
     def disconnect(self):
+        """Disconnect the controller."""
         if self._session.isalive():
             logger.debug("Disconnecting the sessions")
-            self.sendline('\x04')
-            self.sendline('\x03')
-            self.sendcontrol(']')
-            self.sendline('quit')
-
+            self.sendline('\x04')  # pylint: disable=no-member
+            self.sendline('\x03')  # pylint: disable=no-member
+            self.sendcontrol(']')  # pylint: disable=no-member
+            self.sendline('quit')  # pylint: disable=no-member
             self._session.close()
         logger.debug("Disconnected")
         self.connected = False
 
     @property
     def before(self):
-        """
-        Property added to imitate pexpect.spawn class
-        """
+        """Return text up to the expected string pattern."""
         return self._session.before if self._session else None
 
     @property
     def after(self):
-        """
-        Property added to imitate pexpect.spawn class
-        """
+        """Return text that was matched by the expected pattern."""
         return self._session.after if self._session else None

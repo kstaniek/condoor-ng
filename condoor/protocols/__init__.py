@@ -30,10 +30,10 @@
 
 from collections import defaultdict
 
-from base import Protocol
-from ssh import SSH
-from telnet import Telnet
-from telnet import TelnetConsole
+from condoor.protocols.base import Protocol
+from condoor.protocols.ssh import SSH
+from condoor.protocols.telnet import Telnet
+from condoor.protocols.telnet import TelnetConsole
 
 protocol2object = defaultdict(
     Protocol, {

@@ -28,17 +28,17 @@
 
 from unittest import TestCase
 
-from tests.dmock.dmock import TelnetServer, ASR903Handler
+from tests.dmock.dmock import TelnetServer, ASR901Handler
 from threading import Thread
 
 import condoor
 import os
 
 
-class TestASR903Connection(TestCase):
+class TestASR901Connection(TestCase):
 
     def setUp(self):
-        self.server = TelnetServer(("127.0.0.1", 10025), ASR903Handler)
+        self.server = TelnetServer(("127.0.0.1", 10025), ASR901Handler)
         self.server_thread = Thread(target=self.server.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
@@ -63,8 +63,8 @@ class TestASR903Connection(TestCase):
         self.server.server_close()
         self.server_thread.join()
 
-    def test_ASR903_1_discovery(self):
-        """ASR903: Test the connection and discovery"""
+    def test_ASR901_1_discovery(self):
+        """ASR901: Test the connection and discovery"""
 
         try:
             os.remove('/tmp/condoor.shelve')
@@ -77,58 +77,58 @@ class TestASR903Connection(TestCase):
         conn.connect(self.logfile_condoor)
 
         self.assertEqual(conn.is_discovered, True, "Not discovered properly")
-        self.assertEqual(conn.hostname, "PAN-5205-ASR903", "Wrong Hostname: {}".format(conn.hostname))
+        self.assertEqual(conn.hostname, "CSG-1202-ASR901", "Wrong Hostname: {}".format(conn.hostname))
         self.assertEqual(conn.family, "ASR900", "Wrong Family: {}".format(conn.family))
-        self.assertEqual(conn.platform, "ASR-903", "Wrong Platform: {}".format(conn.platform))
-        self.assertEqual(conn.os_type, "XE", "Wrong OS Type: {}".format(conn.os_type))
-        self.assertEqual(conn.os_version, "03.18.00.S", "Wrong Version: {}".format(conn.os_version))
-        self.assertEqual(conn.udi['name'], "Chassis", "Wrong Name: {}".format(conn.udi['name']))
-        self.assertEqual(conn.udi['description'], "ASR 903 Series Router Chassis",
+        self.assertEqual(conn.platform, "A901", "Wrong Platform: {}".format(conn.platform))
+        self.assertEqual(conn.os_type, "IOS", "Wrong OS Type: {}".format(conn.os_type))
+        self.assertEqual(conn.os_version, "15.3(2)S1", "Wrong Version: {}".format(conn.os_version))
+        self.assertEqual(conn.udi['name'], "A901-6CZ-FT-A Chassis", "Wrong Name: {}".format(conn.udi['name']))
+        self.assertEqual(conn.udi['description'], "A901-6CZ-FT-A Chassis",
                          "Wrong Description: {}".format(conn.udi['description']))
-        self.assertEqual(conn.udi['pid'], "ASR-903", "Wrong PID: {}".format(conn.udi['pid']))
+        self.assertEqual(conn.udi['pid'], "A901-6CZ-FT-A", "Wrong PID: {}".format(conn.udi['pid']))
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
-        self.assertEqual(conn.udi['sn'], "FOX1717P569", "Wrong S/N: {}".format(conn.udi['sn']))
-        self.assertEqual(conn.prompt, "PAN-5205-ASR903#", "Wrong Prompt: {}".format(conn.prompt))
+        self.assertEqual(conn.udi['sn'], "CAT1650U01P", "Wrong S/N: {}".format(conn.udi['sn']))
+        self.assertEqual(conn.prompt, "CSG-1202-ASR901#", "Wrong Prompt: {}".format(conn.prompt))
         with self.assertRaises(condoor.CommandSyntaxError):
             conn.send("wrongcommand")
 
         conn.disconnect()
 
-    def test_ASR903_2_discovery(self):
-        """ASR903: Test whether the cached information is used"""
+    def test_ASR901_2_discovery(self):
+        """ASR901: Test whether the cached information is used"""
         urls = ["telnet://admin:admin@127.0.0.1:10025/admin"]
         conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
         self.conn = conn
         conn.connect(self.logfile_condoor)
 
         self.assertEqual(conn.is_discovered, True, "Not discovered properly")
-        self.assertEqual(conn.hostname, "PAN-5205-ASR903", "Wrong Hostname: {}".format(conn.hostname))
+        self.assertEqual(conn.hostname, "CSG-1202-ASR901", "Wrong Hostname: {}".format(conn.hostname))
         self.assertEqual(conn.family, "ASR900", "Wrong Family: {}".format(conn.family))
-        self.assertEqual(conn.platform, "ASR-903", "Wrong Platform: {}".format(conn.platform))
-        self.assertEqual(conn.os_type, "XE", "Wrong OS Type: {}".format(conn.os_type))
-        self.assertEqual(conn.os_version, "03.18.00.S", "Wrong Version: {}".format(conn.os_version))
-        self.assertEqual(conn.udi['name'], "Chassis", "Wrong Name: {}".format(conn.udi['name']))
-        self.assertEqual(conn.udi['description'], "ASR 903 Series Router Chassis",
+        self.assertEqual(conn.platform, "A901", "Wrong Platform: {}".format(conn.platform))
+        self.assertEqual(conn.os_type, "IOS", "Wrong OS Type: {}".format(conn.os_type))
+        self.assertEqual(conn.os_version, "15.3(2)S1", "Wrong Version: {}".format(conn.os_version))
+        self.assertEqual(conn.udi['name'], "A901-6CZ-FT-A Chassis", "Wrong Name: {}".format(conn.udi['name']))
+        self.assertEqual(conn.udi['description'], "A901-6CZ-FT-A Chassis",
                          "Wrong Description: {}".format(conn.udi['description']))
-        self.assertEqual(conn.udi['pid'], "ASR-903", "Wrong PID: {}".format(conn.udi['pid']))
+        self.assertEqual(conn.udi['pid'], "A901-6CZ-FT-A", "Wrong PID: {}".format(conn.udi['pid']))
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
-        self.assertEqual(conn.udi['sn'], "FOX1717P569", "Wrong S/N: {}".format(conn.udi['sn']))
-        self.assertEqual(conn.prompt, "PAN-5205-ASR903#", "Wrong Prompt: {}".format(conn.prompt))
+        self.assertEqual(conn.udi['sn'], "CAT1650U01P", "Wrong S/N: {}".format(conn.udi['sn']))
+        self.assertEqual(conn.prompt, "CSG-1202-ASR901#", "Wrong Prompt: {}".format(conn.prompt))
         with self.assertRaises(condoor.CommandSyntaxError):
             conn.send("wrongcommand")
 
         conn.disconnect()
 
-    def test_ASR903_3_connection_wrong_password(self):
-        """ASR903: Test wrong password"""
+    def test_ASR901_3_connection_wrong_password(self):
+        """ASR901: Test wrong password"""
         urls = ["telnet://:password@127.0.0.1:10025/admin"]
         self.conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
 
         with self.assertRaises(condoor.ConnectionAuthenticationError):
             self.conn.connect(self.logfile_condoor)
 
-    def test_ASR903_4_connection_wrong_enable_password(self):
-        """ASR903: Test wrong enable password"""
+    def test_ASR901_4_connection_wrong_enable_password(self):
+        """ASR901: Test wrong enable password"""
         urls = ["telnet://:password@127.0.0.1:10025/admin"]
         self.conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
 

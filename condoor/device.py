@@ -26,15 +26,16 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
+from os import getpid
 import sys
 import logging
 import pexpect
 
 from condoor.exceptions import ConnectionError, CommandSyntaxError, CommandTimeoutError
-from utils import parse_inventory
+from condoor.utils import parse_inventory
+from condoor.fsm import FSM
 
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
@@ -111,7 +112,6 @@ class Device(object):
             self.prompt_re = self.driver.prompt_re
 
         self.ctrl = ctrl
-        # self.protocol.last_pattern = None
         if self.protocol.connect(self.driver):
             if self.protocol.authenticate(self.driver):
                 if not self.prompt:
@@ -168,14 +168,11 @@ class Device(object):
         self.enable(self._get_enable_password())
 
     def _get_enable_password(self):
-        enable_password = self.node_info.enable_password
-        if enable_password is None:
-            enable_password = self.node_info.password
-        return enable_password
+        return self.node_info.enable_password if self.node_info.enable_password else self.node_info.password
 
     def disconnect(self):
+        self.ctrl = None
         self.protocol = None
-        pass
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
         """
@@ -394,3 +391,11 @@ class Device(object):
 
     def enable(self, enable_password):
         self.driver.enable(enable_password)
+
+    def reload(self):
+        self.ctrl.send(self.driver.reload_cmd)
+        self.driver.reload()
+
+    def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
+        self.ctrl.send_command(command)
+        return FSM(name, self, events, transitions, timeout=timeout, max_transitions=max_transitions).run()

@@ -29,7 +29,7 @@
 import re
 import logging
 
-from generic import Driver as Generic
+from condoor.drivers.generic import Driver as Generic
 from condoor import pattern_manager, CommandError
 
 from os import getpid
@@ -50,19 +50,17 @@ class Driver(Generic):
         return version_text
 
     def update_hostname(self, prompt):
-        if self.device.hostname_text:
-            return self.device.hostname_text.split('\n')[0]
-        else:
-            return None
+        return self.device.hostname
 
     def get_hostname_text(self):
-        # FIXME: fix it
-        hostname_text = None
+        # FIXME: fix it, too complex logic
         try:
             hostname_text = self.device.send('hostname', timeout=10)
+            if hostname_text:
+                self.device.hostname = hostname_text.split('\n')[0]
+                return hostname_text
         except CommandError:
-            pass
-        return hostname_text
+            return None
 
     def make_dynamic_prompt(self, prompt):
         patterns = [pattern_manager.get_pattern(

@@ -315,6 +315,14 @@ class SunHandler(DeviceHandler):
         self.writeresponse("Login incorrect")
         return False
 
+    @command('hostname')
+    def hostname(self, params):
+        self.writeresponse("sunserver")
+
+    @command('uname')
+    def uname(self, params):
+        self.writeresponse('SunOS 5.10')
+
     @command('telnet')
     def telnet(self, params):
         self.writeresponse("""Trying host1...
@@ -368,6 +376,11 @@ class ASR903Handler(IOSXEHandler):
     authNeedUser = False
     PROMPT = "PAN-5205-ASR903>"
 
+
+class ASR901Handler(IOSXEHandler):
+    platform = "ASR901"
+    authNeedUser = False
+    PROMPT = "CSG-1202-ASR901>"
 
 if __name__ == '__main__':
 

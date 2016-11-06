@@ -1,59 +1,33 @@
-# =============================================================================
-#
-# Copyright (c) 2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
-
+"""Provides the main Connection class."""
 import re
 import os
 import shelve
 import logging
 from hashlib import md5
 
-from condoor.utils import FilteredFile, normalize_urls, make_handler
 from collections import deque
-from chain import Chain
+from condoor.chain import Chain
 from condoor.exceptions import ConnectionError
-from os import getpid
+from condoor.utils import FilteredFile, normalize_urls, make_handler
 import condoor
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger("{}-{}".format(os.getpid(), __name__))
 
 
 _cache_file = "/tmp/condoor.shelve"
 
 
 class Connection(object):
-    def __init__(self, urls, log_dir=None, log_level=logging.DEBUG, log_session=True):
+    """Connection class providing the condoor API."""
 
+    def __init__(self, urls, log_dir=None, log_level=logging.DEBUG, log_session=True):
+        """Initialize the Connection object."""
         self._discovered = False
         self._last_chain_index = 1
 
         self.log_session = log_session
 
-        top_logger = logging.getLogger("{}-{}".format(getpid(), 'condoor'))
+        top_logger = logging.getLogger("{}-{}".format(os.getpid(), 'condoor'))
         if not len(top_logger.handlers):
             self._handler = make_handler(log_dir, log_level)
             top_logger.addHandler(self._handler)
@@ -64,10 +38,6 @@ class Connection(object):
         logger.info("Condoor version {}".format(condoor.__version__))
 
         self.connection_chains = [Chain(self, url_list) for url_list in normalize_urls(urls)]
-
-    def __del__(self):
-        top_logger = logging.getLogger("{}-{}".format(getpid(), 'condoor'))
-        top_logger.removeHandler(self._handler)
 
     def _make_session_fd(self, log_dir):
         session_fd = None
@@ -104,7 +74,7 @@ class Connection(object):
         cache.close()
 
     def connect(self, logfile=None):
-        """This method connects to the device.
+        """Connect to the device.
 
         Args:
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
@@ -118,7 +88,6 @@ class Connection(object):
             ConnectionTimeoutError: If the connection timeout happened.
 
         """
-
         if logfile:
             self.session_fd = logfile
 
@@ -140,8 +109,7 @@ class Connection(object):
         self._write_cache()
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
-        """
-        Send the command to the device and return the output
+        """Send the command to the device and return the output.
 
         Args:
             cmd (str): Command string for execution. Defaults to empty string.
@@ -158,17 +126,16 @@ class Connection(object):
             CommandSyntaxError: Command syntax error or unknown command.
             CommandTimeoutError: Timeout during command execution
         """
-
         return self._chain.send(cmd, timeout, wait_for_string)
 
     def disconnect(self):
-        """
-        This method disconnect the session from the device and all the jumphosts in the path.
-        """
+        """Disconnect the session from the device and all the jumphosts in the path."""
         self._chain.disconnect()
 
     def discovery(self, logfile=None):
-        """This method detects the device details. This method discovery the several device attributes.
+        """Discover the device details.
+
+        This method discover several device attributes.
 
         Args:
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
@@ -177,12 +144,13 @@ class Connection(object):
 
         """
         logger.info("Device discovery process started")
-        #
+        # TODO: invalidate cache
         self.connect(logfile=logfile)
 
     def enable(self, enable_password=None):
-        """This method changes the device mode to privileged. If device does not support privileged mode the
-        the informational message to the log will be posted.
+        """Change the device mode to privileged.
+
+        If device does not support privileged mode the the informational message to the log will be posted.
 
         Args:
             enable_password (str): The privileged mode password. This is optional parameter. If password is not
@@ -190,85 +158,180 @@ class Connection(object):
         """
         self._chain.target_device.enable(enable_password)
 
+    def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
+        """Instantiate and run the Finite State Machine for the current device connection.
+
+        Here is the example of usage::
+
+            test_dir = "rw_test"
+            dir = "disk0:" + test_dir
+            REMOVE_DIR = re.compile(re.escape("Remove directory filename [{}]?".format(test_dir)))
+            DELETE_CONFIRM = re.compile(re.escape("Delete {}/{}[confirm]".format(filesystem, test_dir)))
+            REMOVE_ERROR = re.compile(re.escape("%Error Removing dir {} (Directory doesnot exist)".format(test_dir)))
+
+            command = "rmdir {}".format(dir)
+            events = [device.prompt, REMOVE_DIR, DELETE_CONFIRM, REMOVE_ERROR, pexpect.TIMEOUT]
+            transitions = [
+                (REMOVE_DIR, [0], 1, send_newline, 5),
+                (DELETE_CONFIRM, [1], 2, send_newline, 5),
+                # if dir does not exist initially it's ok
+                (REMOVE_ERROR, [0], 2, None, 0),
+                (device.prompt, [2], -1, None, 0),
+                (pexpect.TIMEOUT, [0, 1, 2], -1, error, 0)
+
+            ]
+            manager.log("Removing test directory from {} if exists".format(dir))
+            if not device.run_fsm("DELETE_DIR", command, events, transitions, timeout=5):
+                return False
+
+        This FSM tries to remove directory from disk0:
+
+        Args:
+            name (str): Name of the state machine used for logging purposes. Can't be *None*
+            command (str): The command sent to the device before FSM starts
+            events (list): List of expected strings or pexpect.TIMEOUT exception expected from the device.
+            transitions (list): List of tuples in defining the state machine transitions.
+            timeout (int): Default timeout between states in seconds.
+            max_transitions (int): Default maximum number of transitions allowed for FSM.
+
+        The transition tuple format is as follows::
+
+            (event, [list_of_states], next_state, action, timeout)
+
+        - event (str): string from the `events` list which is expected to be received from device.
+        - list_of_states (list): List of FSM states that triggers the action in case of event occurrence.
+        - next_state (int): Next state for FSM transition.
+        - action (func): function to be executed if the current FSM state belongs to `list_of_states` and the `event`
+          occurred. The action can be also *None* then FSM transits to the next state without any action. Action
+          can be also the exception, which is raised and FSM stops.
+
+        The example action::
+
+            def send_newline(ctx):
+                ctx.ctrl.sendline()
+                return True
+
+            def error(ctx):
+                ctx.message = "Filesystem error"
+                return False
+
+            def readonly(ctx):
+                ctx.message = "Filesystem is readonly"
+                return False
+
+        The ctx object description refer to :class:`condoor.fsm.FSM`.
+
+        If the action returns True then the FSM continues processing. If the action returns False then FSM stops
+        and the error message passed back to the ctx object is posted to the log.
+
+
+        The FSM state is the integer number. The FSM starts with initial ``state=0`` and finishes if the ``next_state``
+        is set to -1.
+
+        If action returns False then FSM returns False. FSM returns True if reaches the -1 state.
+
+        """
+        return self._chain.target_device.run_fsm(name, command, events, transitions, timeout, max_transitions)
+
     @property
     def _chain(self):
         return self.connection_chains[self._last_chain_index]
 
     @property
     def is_connected(self):
+        """Return if target device is connected."""
         return self._chain.is_connected
 
     @property
     def is_discovered(self):
+        """Return if target device is discovered."""
         return self._chain.is_discovered
 
     @property
     def is_console(self):
+        """Return if target device is connected via console."""
         return self._chain.is_console
 
     @property
     def prompt(self):
+        """Return target device prompt."""
         return self._chain.target_device.prompt
 
     @property
     def hostname(self):
+        """Return target device hostname."""
         return self._chain.target_device.hostname
 
     @property
     def os_type(self):
-        """Returns the string representing the Operating System type. For example: IOS, XR, eXR. If not detected returns
-         *None*"""
+        """Return the string representing the target device OS type.
+
+        For example: IOS, XR, eXR. If not detected returns *None*
+        """
         return self._chain.target_device.os_type
 
     @property
     def os_version(self):
-        """Returns the string representing the Operating System version. For example 5.3.1.
-        If not detected returns *None*"""
+        """Return the string representing the target device OS version.
+
+        For example 5.3.1. If not detected returns *None*
+        """
         return self._chain.target_device.os_version
 
     @property
     def family(self):
-        """Returns the string representing hardware platform family. For example: ASR9K, ASR900, NCS6K, etc."""
+        """Return the string representing hardware platform family.
+
+        For example: ASR9K, ASR900, NCS6K, etc.
+        """
         return self._chain.target_device.family
 
     @property
     def platform(self):
-        """Returns the string representing hardware platform model. For example: ASR-9010, ASR922, NCS-4006, etc."""
+        """Return the string representing hardware platform model.
+
+        For example: ASR-9010, ASR922, NCS-4006, etc.
+        """
         return self._chain.target_device.platform
 
     @property
     def mode(self):
-        """Returns the sting representing the current device mode. For example: Calvados, Windriver, Rommon"""
+        """Return the sting representing the current device mode.
+
+        For example: Calvados, Windriver, Rommon.
+        """
         return self._chain.target_device.driver.platform
 
     @property
     def name(self):
-        """Returns the chassis name"""
+        """Return the chassis name."""
         return self._chain.target_device.udi['name']
 
     @property
     def description(self):
-        """Returns the chassis description."""
+        """Return the chassis description."""
         return self._chain.target_device.udi['description']
 
     @property
     def pid(self):
-        """Returns the chassis PID."""
+        """Return the chassis PID."""
         return self._chain.target_device.udi['pid']
 
     @property
     def vid(self):
-        """Returns the chassis VID."""
+        """Return the chassis VID."""
         return self._chain.target_device.udi['vid']
 
     @property
     def sn(self):
-        """Returns the chassis SN."""
+        """Return the chassis SN."""
         return self._chain.target_device.udi['sn']
 
     @property
     def udi(self):
-        """Returns the dict representing the udi hardware record::
+        """Return the dict representing the udi hardware record.
+
+        Example::
             {
             'description': 'ASR-9904 AC Chassis',
             'name': 'Rack 0',
@@ -282,7 +345,9 @@ class Connection(object):
 
     @property
     def device_info(self):
-        """Returns the dict representing the target device info record::
+        """Return the dict representing the target device info record.
+
+        Example::
             {
             'family': 'ASR9K',
             'os_type': 'eXR',
@@ -295,6 +360,7 @@ class Connection(object):
 
     @property
     def device_description_record(self):
+        """Return dict describing Connection object."""
         return {
             'connections': [{'device_info': [device.device_info for device in chain.devices]}
                             for chain in self.connection_chains],
