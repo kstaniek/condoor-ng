@@ -1,48 +1,23 @@
-# =============================================================================
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""This procides the base Protocol class implementation."""
 
 import re
+from os import getpid
 import time
-import pexpect
 import logging
+import pexpect
 
 
 from condoor.exceptions import ConnectionError
 from condoor.utils import levenshtein_distance
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 class Protocol(object):
+    """Base Protocol class implementation."""
 
     def __init__(self, device):
-
+        """Initialize the protocol object."""
         self.device = device
         self.hostname = self.device.node_info.hostname
         self.port = self.device.node_info.port
@@ -52,26 +27,21 @@ class Protocol(object):
         self.last_pattern = None
 
     def connect(self, device):
-        """
-        Protocol specific implementation
-        """
+        """Connect using specific protocol."""
         raise NotImplementedError("Connection method not implemented")
 
     def authenticate(self, device):
-        """
-        Protocol specific implementation
-        """
+        """Authenticate using specific protocol."""
         raise NotImplementedError("Authentication method not implemented")
 
     def disconnect(self):
-        """
-        Protocol specific implementation
-        """
+        """Disconnect using specific protocol."""
         raise NotImplementedError("Disconnect method not implemented")
 
     def try_read_prompt(self, timeout_multiplier):
-        """
-        based on try_read_prompt from pxssh.py
+        """Read the prompt.
+
+        Based on try_read_prompt from pxssh.py
         https://github.com/pexpect/pexpect/blob/master/pexpect/pxssh.py
         """
         # maximum time allowed to read the first response
@@ -105,7 +75,8 @@ class Protocol(object):
         return prompt
 
     def detect_prompt(self, sync_multiplier=4):
-        """
+        """Detect the prompt.
+
         This attempts to find the prompt. Basically, press enter and record
         the response; press enter again and record the response; if the two
         responses are similar then assume we are at the original prompt.

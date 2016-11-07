@@ -1,30 +1,4 @@
-# =============================================================================
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""Provides HopInfo class implementation and factory function."""
 
 import re
 from urlparse import urlparse
@@ -39,8 +13,8 @@ protocol2port_map = {
 
 
 def make_hop_info_from_url(url, verify_reachability=None):
-    """
-    This is a factory function to build HopInfo object from url.
+    """Factory function to build HopInfo object from url.
+
     It allows only telnet and ssh as a valid protocols.
 
     Args:
@@ -65,7 +39,6 @@ def make_hop_info_from_url(url, verify_reachability=None):
         HopInfo object or None if url is invalid or protocol not supported
 
     """
-
     parsed = urlparse(url)
     try:
         # search for anything which is after the netloc/
@@ -88,10 +61,11 @@ def make_hop_info_from_url(url, verify_reachability=None):
 
 
 class HopInfo(object):
+    """HopInfo class contains implementation.
+
+    It maintain all the information needed for node (jump host or device) access.
     """
-    HopInfo class contains all the information needed
-    for node (jump host or device) access.
-    """
+
     def __init__(
             self,
             protocol,
@@ -102,7 +76,7 @@ class HopInfo(object):
             enable_password=None,
             verify_reachability=None):
         """
-        Initialize the HopInfo with the provided arguments:
+        Initialize the HopInfo object.
 
         Args:
             protocol (str): 'telnet' or 'ssh'. The other protocols are not
@@ -120,7 +94,6 @@ class HopInfo(object):
                 It can speedup the connection process when node not
                 reachable especially with telnet having long timeout.
         """
-
         self.hostname = hostname
         self.username = username
         self.password = password
@@ -134,11 +107,13 @@ class HopInfo(object):
         self.verify_reachability = verify_reachability
 
     def is_valid(self):
+        """Return if protocol is valid."""
         if self.protocol not in ['telnet', 'ssh']:
             return False
         return True
 
     def is_reachable(self):
+        """Return if host is reachable."""
         if self.verify_reachability and \
                 hasattr(self.verify_reachability, '__call__'):
             return self.verify_reachability(host=self.hostname, port=self.port)
@@ -146,6 +121,7 @@ class HopInfo(object):
         return True
 
     def __repr__(self):
+        """Return string representation of the class."""
         if self.username is None:
             repr_str = "{}://{}:{}".format(self.protocol, self.hostname, self.port)
         else:

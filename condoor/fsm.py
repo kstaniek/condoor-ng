@@ -1,31 +1,4 @@
-# =============================================================================
-# fsm
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""Provides Finite State Machine implementation."""
 
 from os import getpid
 from inspect import isclass
@@ -41,6 +14,7 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 def action(func):
+    """Wrapper for FSM action function providing extended loging information based on doc string."""
     @wraps(func)
     def with_logging(*args, **kwargs):
         logger.debug("A={}".format(func.__doc__))
@@ -49,40 +23,43 @@ def action(func):
 
 
 class FSM(object):
-    """This class represents Finite State Machine for the current device connection. Here is the
-        example of usage::
+    """This class represents Finite State Machine for the current device connection.
 
-            to be done
+    Here is the example of usage::
 
-
-        The example action::
-
-            def send_newline(ctx):
-                ctx.ctrl.sendline()
-                return True
-
-            def error(ctx):
-                ctx.message = "Filesystem error"
-                return False
-
-            def readonly(ctx):
-                ctx.message = "Filesystem is readonly"
-                return False
-
-        The ctx object description refer to :class:`condoor.controllers.fsm.FSM`.
-
-        If the action returns True then the FSM continues processing. If the action returns False then FSM stops
-        and the error message passed back to the ctx object is posted to the log.
+        to be done
 
 
-        The FSM state is the integer number. The FSM starts with initial ``state=0`` and finishes if the ``next_state``
-        is set to -1.
+    The example action::
 
-        If action returns False then FSM returns False. FSM returns True if reaches the -1 state.
+        def send_newline(ctx):
+            ctx.ctrl.sendline()
+            return True
 
-        """
+        def error(ctx):
+            ctx.message = "Filesystem error"
+            return False
+
+        def readonly(ctx):
+            ctx.message = "Filesystem is readonly"
+            return False
+
+    The ctx object description refer to :class:`condoor.controllers.fsm.FSM`.
+
+    If the action returns True then the FSM continues processing. If the action returns False then FSM stops
+    and the error message passed back to the ctx object is posted to the log.
+
+
+    The FSM state is the integer number. The FSM starts with initial ``state=0`` and finishes if the ``next_state``
+    is set to -1.
+
+    If action returns False then FSM returns False. FSM returns True if reaches the -1 state.
+
+    """
 
     class Context(object):
+        """FSM Context class."""
+
         _slots__ = ('fsm_name', 'ctrl', 'event', 'state', 'finished', 'msg', 'pattern')
         fsm_name = "FSM"
         ctrl = None
@@ -93,7 +70,7 @@ class FSM(object):
         pattern = None
 
         def __init__(self, fsm_name, device):
-            """This is a class constructor.
+            """Initialize the FSM context object.
 
             Args:
                 fsm_name (str): Name of the FSM. This is used for logging.
@@ -104,13 +81,13 @@ class FSM(object):
             self.fsm_name = fsm_name
 
         def __str__(self):
-            """Returns the string representing the context"""
+            """Return the string representing the FSM context."""
             return "FSM Context:E={},S={},FI={},M='{}'".format(
                 self.event, self.state, self.finished, self.msg)
 
     def __init__(self, name, device, events, transitions, init_pattern=None, timeout=300, searchwindowsize=-1,
                  max_transitions=20):
-        """This is a FSM class constructor.
+        """Initialize FSM object.
 
         Args:
             name (str): Name of the state machine used for logging purposes. Can't be *None*
@@ -163,10 +140,10 @@ class FSM(object):
         return compiled
 
     def run(self):
-        """This method starts the FSM.
+        """Start the FSM.
 
-            Returns:
-                boolean: True if FSM reaches the last state or false if the exception or error message was raised
+        Returns:
+            boolean: True if FSM reaches the last state or false if the exception or error message was raised
         """
         ctx = FSM.Context(self.name, self.device)
         transition_counter = 0

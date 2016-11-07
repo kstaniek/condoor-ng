@@ -1,31 +1,4 @@
-# =============================================================================
-#
-# Copyright (c) 2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
-
+"""Provides the PatternManager class."""
 
 import os
 import re
@@ -33,7 +6,10 @@ import yaml
 
 
 class PatternManager(object):
+    """Provides API to patterns defined externally."""
+
     def __init__(self, pattern_dict):
+        """Initialize PatternManager object."""
         self._dict = pattern_dict
         # self._dict_compiled = self._compile_patterns()
 
@@ -91,14 +67,13 @@ class PatternManager(object):
             return patterns_re
 
     def get_pattern(self, platform, key, compiled=True):
-        """
-        Returns the pattern defined by the key string specific to the platform.
+        """Return the pattern defined by the key string specific to the platform.
+
         :param platform:
         :param key:
         :param compiled:
         :return: Pattern string or RE object.
         """
-
         patterns, generic_patterns = self._get_platform_patterns(platform)
         pattern = patterns.get(key, generic_patterns.get(key, None))
 
@@ -124,6 +99,7 @@ class PatternManager(object):
             return pattern
 
     def get_pattern_description(self, platform, key):
+        """Return the patter description."""
         patterns, generic_patterns = self._get_platform_patterns(platform)
         pattern = patterns.get(key, generic_patterns.get(key, None))
         if isinstance(pattern, dict):
@@ -134,6 +110,7 @@ class PatternManager(object):
         return description
 
     def get_platform_based_on_prompt(self, prompt):
+        """Return the platform name based on the prompt matching."""
         platforms = self._dict['generic']['prompt_detection']
         for platform in platforms:
             pattern = self.get_pattern(platform, 'prompt')
@@ -144,7 +121,10 @@ class PatternManager(object):
 
 
 class YPatternManager(PatternManager):
+    """Yaml version of pattern manager."""
+
     def __init__(self, config_file_path=None):
+        """Initialize the pattern manager object."""
         if config_file_path is None:
             script_name = os.path.splitext(__file__)[0]
             # try user config path first

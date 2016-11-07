@@ -1,30 +1,4 @@
-# =============================================================================
-#
-# Copyright (c) 2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""Provides Device class representing the physical device for both target and jumphost."""
 
 from os import getpid
 import sys
@@ -40,8 +14,10 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 class Device(object):
-    def __init__(self, chain, node_info, driver_name='jumphost', is_target=False):
+    """Device class representing physical device for both target and jumphost."""
 
+    def __init__(self, chain, node_info, driver_name='jumphost', is_target=False):
+        """Initialize Device object."""
         self.chain = chain
         self.hostname = "{}:{}".format(node_info.hostname, node_info.port)  # used by driver
 
@@ -90,6 +66,7 @@ class Device(object):
 
     @property
     def device_info(self):
+        """Return device info dict."""
         return {
             'family': self.family,
             'platform': self.platform,
@@ -105,9 +82,11 @@ class Device(object):
         }
 
     def __repr__(self):
+        """Return string representing node info."""
         return str(self.node_info)
 
     def connect(self, ctrl):
+        """Connect to the device."""
         if self.prompt_re is None:
             self.prompt_re = self.driver.prompt_re
 
@@ -171,12 +150,13 @@ class Device(object):
         return self.node_info.enable_password if self.node_info.enable_password else self.node_info.password
 
     def disconnect(self):
+        """Disconnect the device."""
+        # TODO: Workout disconnecting process
         self.ctrl = None
         self.protocol = None
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
-        """
-        Send the command to the device and return the output
+        """Send the command to the device and return the output.
 
         Args:
             cmd (str): Command string for execution. Defaults to empty string.
@@ -211,6 +191,7 @@ class Device(object):
             raise ConnectionError("Device not connected", host=self.hostname)
 
     def execute_command(self, cmd, timeout, wait_for_string):
+        """Execute command."""
         try:
             self.last_command_result = None
             self.ctrl.send_command(cmd)
@@ -254,6 +235,7 @@ class Device(object):
 
     @property
     def driver_name(self):
+        """Return driver name or None."""
         return None if self.driver is None else self.driver.platform
 
     @driver_name.setter
@@ -264,7 +246,7 @@ class Device(object):
             self.make_dynamic_prompt(self.prompt)
 
     def make_driver(self, driver_name='generic'):
-
+        """Factory function to make driver."""
         module_str = 'condoor.drivers.%s' % driver_name
         try:
             __import__(module_str)
@@ -279,10 +261,12 @@ class Device(object):
         return driver_class(self)
 
     def get_previous_prompts(self):
+        """Return list of prompts from all devices except target."""
         return self.chain.get_previous_prompts(self)
 
     @property
     def version_text(self):
+        """Return version text and collect if not available."""
         if self._version_text is None:
             logger.debug("Collecting version information")
             self._version_text = self.driver.get_version_text()
@@ -295,6 +279,7 @@ class Device(object):
 
     @property
     def hostname_text(self):
+        """Return hostname text and collect if not available."""
         if self._hostname_text is None:
             logger.debug("Collecting hostname information")
             self._hostname_text = self.driver.get_hostname_text()
@@ -306,6 +291,7 @@ class Device(object):
 
     @property
     def inventory_text(self):
+        """Return inventory information and collect if not available."""
         if self._inventory_text is None:
             logger.debug("Collecting inventory information")
             self._inventory_text = self.driver.get_inventory_text()
@@ -317,6 +303,7 @@ class Device(object):
 
     @property
     def users_text(self):
+        """Return connected users information and collect if not available."""
         if self._users_text is None:
             logger.debug("Getting connected users text")
             self._users_text = self.driver.get_users_text()
@@ -327,75 +314,92 @@ class Device(object):
         return self._users_text
 
     def get_protocol_name(self):
+        """Provide protocol name based on node_info."""
         protocol_name = self.node_info.protocol
         if self.is_console:
             protocol_name += '_console'
         return protocol_name
 
     def make_dynamic_prompt(self, prompt):
+        """Extend prompt with flexible mode handling regexp."""
         if prompt:
             self.prompt_re = self.driver.make_dynamic_prompt(prompt)
 
     def update_udi(self):
+        """Update udi."""
         logger.debug("Parsing inventory")
         # TODO: Maybe validate if udi is complete
         self.udi = parse_inventory(self.inventory_text)
 
     def update_config_mode(self):
+        """Update config mode."""
+        # TODO: Fix the conflict with config mode attribute at connection
         self.mode = self.driver.update_config_mode(self.prompt)
 
     def update_hostname(self):
+        """Update hostname."""
         self.hostname = self.driver.update_hostname(self.prompt)
 
     def update_driver(self, prompt):
+        """Update driver based on new prompt."""
         logger.debug("{}: New prompt '{}'".format(self.driver.platform, prompt))
         self.prompt = prompt
         self.driver_name = self.driver.update_driver(prompt)
 
     def prepare_terminal_session(self):
+        """Send commands to prepare terminal session configuration."""
         for cmd in self.driver.prepare_terminal_session:
             self.send(cmd)
 
     def update_os_type(self):
+        """Update os_type attribute."""
         os_type = self.driver.get_os_type(self.version_text)
         if os_type:
             logger.debug("SW Type: {}".format(os_type))
             self.os_type = os_type
 
     def update_os_version(self):
+        """Update os_version attribute."""
         os_version = self.driver.get_os_version(self.version_text)
         if os_version:
             logger.debug("SW Version: {}".format(os_version))
             self.os_version = os_version
 
     def update_family(self):
+        """Update family attribute."""
         family = self.driver.get_hw_family(self.version_text)
         if family:
             logger.debug("HW Family: {}".format(family))
             self.family = family
 
     def update_platform(self):
+        """Update platform attribute."""
         platform = self.driver.get_hw_platform(self.udi)
         if platform:
             logger.debug("HW Platform: {}".format(platform))
             self.platform = platform
 
     def update_console(self):
+        """Update is_console whether connected via console."""
         is_console = self.driver.is_console(self.users_text)
         if is_console is not None:
             self.is_console = is_console
 
     def after_connect(self):
+        """Execute right after connect."""
         # TODO: Check if still in use
         return self.driver.after_connect()
 
     def enable(self, enable_password):
+        """Set privilege mode."""
         self.driver.enable(enable_password)
 
     def reload(self):
+        """Reload device."""
         self.ctrl.send(self.driver.reload_cmd)
         self.driver.reload()
 
     def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
+        """Wrap the FSM code."""
         self.ctrl.send_command(command)
         return FSM(name, self, events, transitions, timeout=timeout, max_transitions=max_transitions).run()

@@ -1,34 +1,10 @@
-# =============================================================================
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""Provides Telnet driver class."""
+
 from functools import partial
 import re
-import pexpect
+from os import getpid
 import logging
+import pexpect
 
 from condoor.fsm import FSM
 from condoor.utils import pattern_to_str
@@ -38,7 +14,6 @@ from condoor.actions import a_send, a_send_line, a_send_password, a_authenticati
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
@@ -51,13 +26,18 @@ AUTH_FAILED = "Authentication failed|not authorized|Login incorrect"
 
 
 class Telnet(Protocol):
+    """Telnet protocol implementation."""
+
     def __init__(self, device):
+        """Initialize the Telnet object."""
         super(Telnet, self).__init__(device)
 
     def get_command(self):
+        """Return the Telnet protocol specific command to connect."""
         return "telnet {} {}".format(self.hostname, self.port)
 
     def connect(self, driver):
+        """Connect using the Telnet protocol specific FSM."""
         #              0            1                              2                      3
         events = [ESCAPE_CHAR, driver.press_return_re, driver.standby_re, driver.username_re,
                   #            4                   5                  6                     7
@@ -89,6 +69,7 @@ class Telnet(Protocol):
         return fsm.run()
 
     def authenticate(self, driver):
+        """Authenticate using the SSH protocol specific FSM."""
         #                      0                      1                    2                    3
         events = [driver.username_re, driver.password_re, self.device.prompt_re, driver.rommon_re,
                   #       4             5             6              7                8
@@ -113,14 +94,18 @@ class Telnet(Protocol):
         self.try_read_prompt(1)
         return fsm.run()
 
-    # def disconnect(self):
-    #     # self.ctrl.sendcontrol(']')
-    #     # self.ctrl.sendline('quit')
-    #     self.ctrl.send(chr(4))
+    def disconnect(self):
+        """Disconnect using protocol specific method."""
+        self.device.sendcontrol(']')
+        self.device.sendline('quit')
+        self.device.send(chr(4))
 
 
 class TelnetConsole(Telnet):
+    """Telnet to the console protocol implementation."""
+
     def connect(self, driver):
+        """Connect using console specific FSM."""
         #              0            1                    2                      3
         events = [ESCAPE_CHAR, driver.press_return_re, driver.standby_re, driver.username_re,
                   #            4                   5            6                     7
@@ -148,5 +133,5 @@ class TelnetConsole(Telnet):
             (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0)
         ]
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
-        sm = FSM("TELNET-CONNECT-CONSOLE", self.device, events, transitions, init_pattern=self.last_pattern)
-        return sm.run()
+        fsm = FSM("TELNET-CONNECT-CONSOLE", self.device, events, transitions, init_pattern=self.last_pattern)
+        return fsm.run()

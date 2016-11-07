@@ -1,30 +1,4 @@
-# =============================================================================
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""Provides a set of functions nad clases for different purpose."""
 
 import logging
 import socket
@@ -34,9 +8,7 @@ import os
 
 
 def delegate(attribute_name, method_names):
-    """Passes the call to the attribute called attribute_name for
-    every method listed in method_names.
-    """
+    """Pass the call to the attribute called attribute_name for every method listed in method_names."""
     # hack for python 2.7 as nonlocal is not available
     d = {
         'attribute': attribute_name,
@@ -55,7 +27,8 @@ def delegate(attribute_name, method_names):
 
 
 def to_list(item):
-    """
+    """Convert to list.
+
     If the given item is iterable, this function returns the given item.
     If the item is not iterable, this function returns a list with only the
     item in it.
@@ -71,8 +44,8 @@ def to_list(item):
 
 
 def is_reachable(host, port=23):
-    """
-    This function check reachability for specified hostname/port
+    """Check reachability for specified hostname/port.
+
     It tries to open TCP socket.
     It supports IPv6.
     :param host: hostname or ip address string
@@ -81,7 +54,6 @@ def is_reachable(host, port=23):
     :rtype: number
     :return: True if host is reachable else false
     """
-
     try:
         addresses = socket.getaddrinfo(
             host, port, socket.AF_UNSPEC, socket.SOCK_STREAM
@@ -108,8 +80,9 @@ def is_reachable(host, port=23):
 
 
 def pattern_to_str(pattern):
-    """
-    This function convert pattern to string. If pattern is string it returns itself,
+    """Convert regex pattern to string.
+
+    If pattern is string it returns itself,
     if pattern is SRE_Pattern then return pattern attribute
     :param pattern: pattern object or string
     :return: str: pattern sttring
@@ -121,14 +94,12 @@ def pattern_to_str(pattern):
 
 
 def levenshtein_distance(a, b):
-    """
-    This calculates the Levenshtein distance between string a and b.
+    """Calculate the Levenshtein distance between string a and b.
 
     :param a: String - input string a
     :param b: String - input string b
     :return: Number - Levenshtein Distance between string a and b
     """
-
     n, m = len(a), len(b)
     if n > m:
         a, b = b, a
@@ -146,6 +117,7 @@ def levenshtein_distance(a, b):
 
 
 def parse_inventory(inventory_output=None):
+    """Parse the inventory text and return udi dict."""
     udi = {
         "name": "",
         "description": "",
@@ -192,19 +164,25 @@ def parse_inventory(inventory_output=None):
 
 
 class FilteredFile(object):
+    """Delegate class for handling filtered file object."""
+
     __slots__ = ['_file', '_pattern']
 
     def __init__(self, filename, mode="r", pattern=None):
+        """Initialize FilteredFile object."""
         object.__setattr__(self, '_pattern', pattern)
         object.__setattr__(self, '_file', open(filename, mode))
 
     def __getattr__(self, name):
+        """Override standard getattr and delegate to file object."""
         return getattr(self._file, name)
 
     def __setattr__(self, name, value):
+        """Override standard setattr and delegate to file object."""
         setattr(self._file, name, value)
 
     def write(self, text):
+        """Override the standard write method to filter the content."""
         if self._pattern:
             # pattern already compiled no need to check
             result = re.search(self._pattern, text)
@@ -215,14 +193,19 @@ class FilteredFile(object):
         self._file.write(text)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Custom context manager exit method."""
         self._file.close()
 
     def __enter__(self):
+        """Custom context manager exit method."""
         return self
 
 
 class FilteredFileHandler(logging.FileHandler):
+    """Class defining custom FileHandler for filtering sensitive information."""
+
     def __init__(self, filename, mode='a', encoding=None, delay=0, pattern=None):
+        """Initialize the FilteredFileHandler object."""
         self.pattern = pattern
         logging.FileHandler.__init__(self, filename, mode=mode, encoding=encoding, delay=delay)
 
@@ -231,6 +214,7 @@ class FilteredFileHandler(logging.FileHandler):
 
 
 def normalize_urls(urls):
+    """Overload urls and make list of lists of urls."""
     _urls = []
     if isinstance(urls, list):
         if urls:
@@ -248,6 +232,7 @@ def normalize_urls(urls):
 
 
 def make_handler(log_dir, log_level):
+    """Make logging handler."""
     if log_level > 0:
         if log_level == logging.DEBUG:
             formatter = logging.Formatter('%(asctime)-15s [%(levelname)8s] %(name)s:'

@@ -1,34 +1,9 @@
-# =============================================================================
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""Provides SSH driver class."""
 
 from functools import partial
-import pexpect
+from os import getpid
 import logging
+import pexpect
 
 from condoor.fsm import FSM, action
 from condoor.utils import pattern_to_str
@@ -38,7 +13,6 @@ from condoor.actions import a_send_password, a_authentication_error, a_send, a_u
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
@@ -50,10 +24,14 @@ HOST_KEY_FAILED = "key verification failed"
 
 
 class SSH(Protocol):
+    """SSH protocol implementation."""
+
     def __init__(self, device):
+        """Initialize SSH object."""
         super(SSH, self).__init__(device)
 
     def get_command(self, version=2):
+        """Return the SSH protocol specific command to connect."""
         if self.username:
             command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -{} -p {} {}@{}".format(
                 version, self.port, self.username, self.hostname
@@ -65,6 +43,7 @@ class SSH(Protocol):
         return command
 
     def connect(self, driver):
+        """Connect using the SSH protocol specific FSM."""
         #                      0                    1                 2                 3
         events = [driver.password_re, self.device.prompt_re, driver.unable_to_connect_re,
                   #   4           5               6               7                   8
@@ -89,10 +68,11 @@ class SSH(Protocol):
 
         ]
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
-        sm = FSM("SSH-CONNECT", self.device, events, transitions, timeout=30, searchwindowsize=160)
-        return sm.run()
+        fsm = FSM("SSH-CONNECT", self.device, events, transitions, timeout=30, searchwindowsize=160)
+        return fsm.run()
 
     def authenticate(self, driver):
+        """Authenticate using the SSH protocol specific FSM."""
         #              0                     1                    2                3
         events = [driver.press_return_re, driver.password_re, self.device.prompt_re, pexpect.TIMEOUT]
 
@@ -114,11 +94,13 @@ class SSH(Protocol):
         return True
 
     def disconnect(self):
+        """Disconnect using the protocol specific method."""
         self.device.sendline('\x03')
 
     # FIXME: This needs to be fixed and tested
     @action
     def fallback_to_sshv1(self, ctx):
+        """Fallback to SSHv1."""
         command = self.get_command(version=1)
         ctx.spawn_session(command)
         return True
