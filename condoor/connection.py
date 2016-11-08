@@ -14,7 +14,7 @@ import condoor
 logger = logging.getLogger("{}-{}".format(os.getpid(), __name__))
 
 
-_cache_file = "/tmp/condoor.shelve"
+_CACHE_FILE = "/tmp/condoor.shelve"
 
 
 class Connection(object):
@@ -57,13 +57,13 @@ class Connection(object):
         return session_fd
 
     def _get_key(self):
-        m = md5()
-        m.update(str(self.connection_chains))
-        return m.hexdigest()
+        key = md5()
+        key.update(str(self.connection_chains))
+        return key.hexdigest()
 
     def _write_cache(self):
         try:
-            cache = shelve.open(_cache_file, 'c')
+            cache = shelve.open(_CACHE_FILE, 'c')
         except Exception:
             logger.error("Unable to open a cache file for write")
             return
@@ -100,7 +100,7 @@ class Connection(object):
             try:
                 if chain.connect():
                     break
-            except ConnectionError as e:
+            except ConnectionError as e:  # pylint: disable=invalid-name
                 excpt = e
         else:
             # invalidate cache
@@ -323,7 +323,7 @@ class Connection(object):
         return self._chain.target_device.udi['vid']
 
     @property
-    def sn(self):
+    def sn(self):  # pylint: disable=invalid-name
         """Return the chassis SN."""
         return self._chain.target_device.udi['sn']
 

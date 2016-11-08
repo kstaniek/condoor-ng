@@ -212,16 +212,16 @@ class Device(object):
             output = output[second_line_index:]
             return output
 
-        except CommandSyntaxError as e:
+        except CommandSyntaxError as e:  # pylint: disable=invalid-name
             logger.error("{}: '{}'".format(e.message, cmd))
             e.command = cmd
             raise
 
-        except (CommandTimeoutError, pexpect.TIMEOUT) as e:
+        except (CommandTimeoutError, pexpect.TIMEOUT):
             logger.error("Command timeout: '{}'".format(cmd))
             raise CommandTimeoutError(message="Command timeout", host=self.hostname, command=cmd)
 
-        except ConnectionError as e:
+        except ConnectionError as e:  # pylint: disable=invalid-name
             logger.error("{}: '{}'".format(e.message, cmd))
             raise
 
@@ -229,7 +229,7 @@ class Device(object):
             logger.error("Unexpected session disconnect")
             raise ConnectionError("Unexpected session disconnect", host=self.hostname)
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=invalid-name
             logger.critical("Exception", exc_info=True)
             raise ConnectionError(message="Unexpected error", host=self.hostname)
 
@@ -252,7 +252,7 @@ class Device(object):
             __import__(module_str)
             module = sys.modules[module_str]
             driver_class = getattr(module, 'Driver')
-        except ImportError as e:
+        except ImportError as e:  # pylint: disable=invalid-name
             logger.critical("Import error", exc_info=e)
             return self.make_driver()
             # raise GeneralError("Platform {} not supported".format(driver_name))

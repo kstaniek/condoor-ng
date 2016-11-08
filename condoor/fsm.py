@@ -17,6 +17,7 @@ def action(func):
     """Wrapper for FSM action function providing extended loging information based on doc string."""
     @wraps(func)
     def with_logging(*args, **kwargs):
+        """Wrap the function with logger debug."""
         logger.debug("A={}".format(func.__doc__))
         return func(*args, **kwargs)
     return with_logging

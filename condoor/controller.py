@@ -1,7 +1,8 @@
 """Provides the Controller class which is a wrapper to the pyexpect.spawn class."""
+
+from os import getpid
 import logging
 import pexpect
-from os import getpid
 
 from condoor.utils import delegate
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError

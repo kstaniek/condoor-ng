@@ -1,36 +1,9 @@
-# =============================================================================
-#
-# Copyright (c)  2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""This is generic driver class implementation."""
 
 from functools import partial
 from os import getpid
 import re
 import logging
-
 import pexpect
 
 from condoor.actions import a_send, a_connection_closed, a_stays_connected, a_unexpected_prompt, a_expected_prompt
@@ -44,6 +17,8 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 class Driver(object):
+    """This is generic Driver class implementation."""
+
     platform = 'generic'
     inventory_cmd = None
     users_cmd = None
@@ -52,7 +27,7 @@ class Driver(object):
     families = {}
 
     def __init__(self, device):
-
+        """Initialize the Driver object."""
         self.device = device
 
         # FIXME: Do something with this, it's insane
@@ -77,9 +52,11 @@ class Driver(object):
         self.console_re = pattern_manager.get_pattern(self.platform, 'console')
 
     def __repr__(self):
+        """Return the string representation of the driver class."""
         return str(self.platform)
 
     def get_version_text(self):
+        """Return the version information from the device."""
         try:
             version_text = self.device.send("show version brief", timeout=120)
         except CommandError:
@@ -88,6 +65,7 @@ class Driver(object):
         return version_text
 
     def get_inventory_text(self):
+        """Return the inventory information from the device."""
         inventory_text = None
         if self.inventory_cmd:
             try:
@@ -99,10 +77,12 @@ class Driver(object):
             logger.debug('No inventory command for {}'.format(self.platform))
         return inventory_text
 
-    def get_hostname_text(self):
+    def get_hostname_text(self):  # pylint: disable=no-self-use
+        """Return the hostname information from the device."""
         return None
 
     def get_users_text(self):
+        """Return the users logged in information from the device."""
         users_text = None
         if self.users_cmd:
             try:
@@ -113,7 +93,8 @@ class Driver(object):
             logger.debug('No users command for {}'.format(self.platform))
         return users_text
 
-    def get_os_type(self, version_text):
+    def get_os_type(self, version_text):  # pylint: disable=no-self-use
+        """Return the OS type information from the device."""
         # FIXME: Consider moving back to device level. This is not depended on the driver
         os_type = None
         if version_text is None:
@@ -135,10 +116,10 @@ class Driver(object):
         return os_type
 
     def get_os_version(self, version_text):
+        """Return the OS version information from the device."""
         os_version = None
         if version_text is None:
             return os_version
-        print(version_text)
         match = re.search(self.version_re, version_text, re.MULTILINE)
         if match:
             os_version = match.group(1)
@@ -146,6 +127,7 @@ class Driver(object):
         return os_version
 
     def get_hw_family(self, version_text):
+        """Return the HW family information from the device."""
         family = None
         if version_text is None:
             return family
@@ -163,6 +145,7 @@ class Driver(object):
         return family
 
     def get_hw_platform(self, udi):
+        """Return th HW platform information from the device."""
         platform = None
         try:
             pid = udi['pid']
@@ -174,6 +157,7 @@ class Driver(object):
         return platform
 
     def is_console(self, users_text):
+        """Return if device is connected over console."""
         for line in users_text.split('\n'):
             if '*' in line:
                 match = re.search(self.vty_re, line)
@@ -190,6 +174,7 @@ class Driver(object):
         return None
 
     def update_driver(self, prompt):
+        """Update driver based on the prompt."""
         logger.debug(prompt)
         platform = pattern_manager.get_platform_based_on_prompt(prompt)
         if platform:
@@ -200,7 +185,7 @@ class Driver(object):
             return self.platform
 
     def wait_for_string(self, expected_string, timeout=60):
-
+        """Wait for string FSM."""
         #                    0                         1                        2                        3
         events = [self.syntax_error_re, self.connection_closed_re, expected_string, self.press_return_re,
                   #        4           5                 6                7
@@ -226,8 +211,8 @@ class Driver(object):
         for prompt in self.device.get_previous_prompts():
             transitions.append((prompt, [0, 1], 0, a_unexpected_prompt, 0))
 
-        sm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
-        return sm.run()
+        fsm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
+        return fsm.run()
 
     # def send_xml(self, command, timeout=60):
     #     """
@@ -264,7 +249,9 @@ class Driver(object):
     #     return result
 
     def enable(self, enable_password):
-        """This method changes the device mode to privileged. If device does not support privileged mode the
+        """Change the device mode to privileged.
+
+        If device does not support privileged mode the
         the informational message to the log will be posted.
 
         Args:
@@ -274,15 +261,18 @@ class Driver(object):
         logger.info("Privileged mode not supported on {} platform".format(self.platform))
 
     def reload(self, rommon_boot_command="boot", reload_timeout=300, save_config=True):
-        """This method reloads the device and waits for device to boot up. It post the informational message to the
-        log if not implemented by device driver."""
+        """Reload the device and waits for device to boot up.
 
+        It posts the informational message to the log if not implemented by device driver.
+        """
         logger.info("Reload not implemented on {} platform".format(self.platform))
 
     def after_connect(self):
+        """Execute right after connecting to the device."""
         pass
 
     def make_dynamic_prompt(self, prompt):
+        """Extend prompt with flexible mode handling regexp."""
         patterns = [pattern_manager.get_pattern(
             self.platform, pattern_name, compiled=False) for pattern_name in self.target_prompt_components]
 
@@ -290,13 +280,14 @@ class Driver(object):
 
         try:
             prompt_re = re.compile(patterns_re)
-        except re.error as e:
+        except re.error as e:  # pylint: disable=invalid-name
             raise RuntimeError("Pattern compile error: {} ({}:{})".format(e.message, self.platform, patterns_re))
 
         logger.debug("Dynamic prompt: '{}'".format(prompt_re.pattern))
         return prompt_re
 
-    def update_config_mode(self, prompt):
+    def update_config_mode(self, prompt):  # pylint: disable=no-self-use
+        """Update config mode based on the prompt analysis."""
         if 'config' in prompt:
             mode = 'config'
         elif 'admin' in prompt:
@@ -308,6 +299,7 @@ class Driver(object):
         return mode
 
     def update_hostname(self, prompt):
+        """Update the hostname based on the prompt analusis."""
         result = re.search(self.prompt_re, prompt)
         if result:
             hostname = result.group('hostname')

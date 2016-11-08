@@ -14,9 +14,9 @@ logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 def device_gen(chain, urls):
     """Device object generator."""
-    it = iter(urls)
-    last = next(it)
-    for url in it:
+    itr = iter(urls)
+    last = next(itr)
+    for url in itr:
         yield Device(chain, make_hop_info_from_url(last), driver_name='jumphost', is_target=False)
         last = url
     yield Device(chain, make_hop_info_from_url(last), driver_name='generic', is_target=True)

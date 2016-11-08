@@ -1,4 +1,4 @@
-"""This procides the base Protocol class implementation."""
+"""This provides the base Protocol class implementation."""
 
 import re
 from os import getpid
@@ -60,12 +60,12 @@ class Protocol(object):
 
         while expired < total_timeout:
             try:
-                p = self.device.ctrl.read_nonblocking(size=1, timeout=timeout)
+                char = self.device.ctrl.read_nonblocking(size=1, timeout=timeout)
                 # \r=0x0d CR \n=0x0a LF
-                if p not in ['\n', '\r']:  # omit the cr/lf sent to get the prompt
+                if char not in ['\n', '\r']:  # omit the cr/lf sent to get the prompt
                     timeout = inter_char_timeout
                 expired = time.time() - begin
-                prompt += p
+                prompt += char
             except pexpect.TIMEOUT:
                 break
             except pexpect.EOF:
@@ -96,20 +96,20 @@ class Protocol(object):
             logger.debug("Detecting prompt. Attempt ({}/{})".format(attempt, max_attempts))
 
             self.device.ctrl.sendline()
-            a = self.try_read_prompt(sync_multiplier)
+            first = self.try_read_prompt(sync_multiplier)
 
             self.device.ctrl.sendline()
-            b = self.try_read_prompt(sync_multiplier)
+            second = self.try_read_prompt(sync_multiplier)
 
-            ld = levenshtein_distance(a, b)
-            len_a = len(a)
-            logger.debug("LD={},MP={}".format(ld, sync_multiplier))
+            lhd = levenshtein_distance(first, second)
+            len_first = len(first)
+            logger.debug("LD={},MP={}".format(lhd, sync_multiplier))
             sync_multiplier *= 1.2
-            if len_a == 0:
+            if len_first == 0:
                 continue
 
-            if float(ld) / len_a < 0.3:
-                prompt = b.splitlines(True)[-1]
+            if float(lhd) / len_first < 0.3:
+                prompt = second.splitlines(True)[-1]
                 logger.debug("Detected prompt: '{}'".format(prompt))
                 compiled_prompt = re.compile("(\r\n|\n\r){}".format(re.escape(prompt)))
                 self.device.ctrl.sendline()

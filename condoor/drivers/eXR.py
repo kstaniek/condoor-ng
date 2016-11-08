@@ -1,34 +1,10 @@
-# =============================================================================
-#
-# Copyright (c) 2016, Cisco Systems
-# All rights reserved.
-#
-# # Author: Klaudiusz Staniek
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# Redistributions of source code must retain the above copyright notice,
-# this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGE.
-# =============================================================================
+"""This is IOS XR 64 bit driver implementation."""
 
 from functools import partial
-import pexpect
+from os import getpid
 import logging
+import pexpect
+
 from condoor.exceptions import CommandSyntaxError, CommandTimeoutError, ConnectionError
 from condoor.actions import a_connection_closed, a_expected_prompt, a_stays_connected, a_unexpected_prompt, a_send, \
     a_store_cmd_result
@@ -36,11 +12,12 @@ from condoor.fsm import FSM
 from condoor.drivers.generic import Driver as Generic
 from condoor import pattern_manager
 
-from os import getpid
 logger = logging.getLogger("{}-{}".format(getpid(), __name__))
 
 
 class Driver(Generic):
+    """This is a Driver class implementation for IOS XR 64 bit."""
+
     platform = 'eXR'
     inventory_cmd = 'admin show inventory chassis'
     users_cmd = 'show users'
@@ -59,16 +36,19 @@ class Driver(Generic):
     }
 
     def __init__(self, device):
+        """Initialize the XR 64 bit Driver object."""
         super(Driver, self).__init__(device)
         self.calvados_re = pattern_manager.get_pattern(self.platform, 'calvados')
         self.calvados_connect_re = pattern_manager.get_pattern(self.platform, 'calvados_connect')
         self.calvados_term_length = pattern_manager.get_pattern(self.platform, 'calvados_term_length')
 
     def get_version_text(self):
+        """Return version information text."""
         version_text = self.device.send("show version", timeout=120)
         return version_text
 
     def update_driver(self, prompt):
+        """Return driver name based on prompt analysis."""
         logger.debug(prompt)
         platform = pattern_manager.get_platform_based_on_prompt(prompt)
         # to avoid the XR platform detection as eXR and XR prompts are the same
@@ -83,8 +63,8 @@ class Driver(Generic):
             return self.platform
 
     def wait_for_string(self, expected_string, timeout=60):
+        """Wait for string FSM for XR 64 bit."""
         # Big thanks to calvados developers for make this FSM such complex ;-)
-
         #                    0                         1                        2                        3
         events = [self.syntax_error_re, self.connection_closed_re, expected_string, self.press_return_re,
                   #        4           5                 6                7               8
@@ -123,5 +103,5 @@ class Driver(Generic):
         for prompt in self.device.get_previous_prompts():
             transitions.append((prompt, [0, 1], 0, a_unexpected_prompt, 0))
 
-        sm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
-        return sm.run()
+        fsm = FSM("WAIT-4-STRING", self.device, events, transitions, timeout=timeout)
+        return fsm.run()

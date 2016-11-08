@@ -10,16 +10,17 @@ import os
 def delegate(attribute_name, method_names):
     """Pass the call to the attribute called attribute_name for every method listed in method_names."""
     # hack for python 2.7 as nonlocal is not available
-    d = {
+    info = {
         'attribute': attribute_name,
         'methods': method_names
     }
 
     def decorator(cls):
-        attribute = d['attribute']
+        """Decorate class."""
+        attribute = info['attribute']
         if attribute.startswith("__"):
             attribute = "_" + cls.__name__ + attribute
-        for name in d['methods']:
+        for name in info['methods']:
             setattr(cls, name, eval("lambda self, *a, **kw: "
                                     "self.{0}.{1}(*a, **kw)".format(attribute, name)))
         return cls
@@ -93,27 +94,27 @@ def pattern_to_str(pattern):
         return pattern.pattern if pattern else None
 
 
-def levenshtein_distance(a, b):
+def levenshtein_distance(str_a, str_b):
     """Calculate the Levenshtein distance between string a and b.
 
-    :param a: String - input string a
-    :param b: String - input string b
+    :param str_a: String - input string a
+    :param str_b: String - input string b
     :return: Number - Levenshtein Distance between string a and b
     """
-    n, m = len(a), len(b)
-    if n > m:
-        a, b = b, a
-        n, m = m, n
-    current = range(n + 1)
-    for i in range(1, m + 1):
-        previous, current = current, [i] + [0] * n
-        for j in range(1, n + 1):
+    len_a, len_b = len(str_a), len(str_b)
+    if len_a > len_b:
+        str_a, str_b = str_b, str_a
+        len_a, len_b = len_b, len_a
+    current = range(len_a + 1)
+    for i in range(1, len_b + 1):
+        previous, current = current, [i] + [0] * len_a
+        for j in range(1, len_a + 1):
             add, delete = previous[j] + 1, current[j - 1] + 1
             change = previous[j - 1]
-            if a[j - 1] != b[i - 1]:
+            if str_a[j - 1] != str_b[i - 1]:
                 change += + 1
             current[j] = min(add, delete, change)
-    return current[n]
+    return current[len_a]
 
 
 def parse_inventory(inventory_output=None):
@@ -187,9 +188,9 @@ class FilteredFile(object):
             # pattern already compiled no need to check
             result = re.search(self._pattern, text)
             if result:
-                for g in result.groups():
-                    if g:
-                        text = text.replace(g, "***")
+                for group in result.groups():
+                    if group:
+                        text = text.replace(group, "***")
         self._file.write(text)
 
     def __exit__(self, exc_type, exc_val, exc_tb):

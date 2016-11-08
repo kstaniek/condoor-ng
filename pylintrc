@@ -3,6 +3,9 @@ reports=no
 max-line-length = 120
 
 # Reasons disabled:
+
+# logging-format-interpolation - it does not impact logging which is mostly for debugging purpose
+
 # locally-disabled - it spams too much
 # duplicate-code - unavoidable
 # cyclic-import - doesn't test if both import on load
@@ -17,6 +20,8 @@ max-line-length = 120
 disable=
   # line-too-long,
   # locally-disabled,
+
+  logging-format-interpolation,
   duplicate-code,
 
   cyclic-import,
