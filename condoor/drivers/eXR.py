@@ -1,7 +1,6 @@
 """This is IOS XR 64 bit driver implementation."""
 
 from functools import partial
-from os import getpid
 import logging
 import pexpect
 
@@ -12,7 +11,7 @@ from condoor.fsm import FSM
 from condoor.drivers.generic import Driver as Generic
 from condoor import pattern_manager
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 class Driver(Generic):

@@ -1,6 +1,5 @@
 """Provides Device class representing the physical device for both target and jumphost."""
 
-from os import getpid
 import sys
 import logging
 import pexpect
@@ -9,8 +8,7 @@ from condoor.exceptions import ConnectionError, CommandSyntaxError, CommandTimeo
 from condoor.utils import parse_inventory
 from condoor.fsm import FSM
 
-
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 class Device(object):
@@ -81,13 +79,21 @@ class Device(object):
             'hostname': self.hostname,
         }
 
+    @device_info.setter
+    def device_info(self, info):
+        for key, value in info.items():
+            logger.debug("Update: [{}] {}<-{}".format(self, key, value))
+            setattr(self, key, value)
+
     def __repr__(self):
         """Return string representing node info."""
         return str(self.node_info)
 
     def connect(self, ctrl):
         """Connect to the device."""
-        if self.prompt_re is None:
+        if self.prompt:
+            self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
+        else:
             self.prompt_re = self.driver.prompt_re
 
         self.ctrl = ctrl
@@ -95,7 +101,7 @@ class Device(object):
             if self.protocol.authenticate(self.driver):
                 if not self.prompt:
                     self.prompt = self.protocol.detect_prompt()
-                    self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
+                self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
                 self.connected = True
 
                 if self.is_target is False:
@@ -257,7 +263,7 @@ class Device(object):
             return self.make_driver()
             # raise GeneralError("Platform {} not supported".format(driver_name))
 
-        logger.debug("Driver: {}".format(driver_class.platform))
+        logger.debug("Device: {} -> Driver: {}".format(self, driver_class.platform))
         return driver_class(self)
 
     def get_previous_prompts(self):

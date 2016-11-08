@@ -1,7 +1,6 @@
 """Provides SSH driver class."""
 
 from functools import partial
-from os import getpid
 import logging
 import pexpect
 
@@ -13,7 +12,7 @@ from condoor.actions import a_send_password, a_authentication_error, a_send, a_u
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 MODULUS_TOO_SMALL = "modulus too small"

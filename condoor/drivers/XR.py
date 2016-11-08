@@ -1,7 +1,9 @@
 """This is IOS XR Classic driver implementation."""
 
-
+import logging
 from condoor.drivers.generic import Driver as Generic
+
+logger = logging.getLogger(__name__)
 
 
 class Driver(Generic):

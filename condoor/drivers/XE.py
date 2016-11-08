@@ -1,12 +1,11 @@
 """This is IOS XE driver implementation."""
 
-from os import getpid
 import logging
 
 from condoor.drivers.IOS import Driver as IOSDriver
 from condoor import pattern_manager
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 # based on IOS driver

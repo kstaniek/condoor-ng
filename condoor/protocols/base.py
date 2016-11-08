@@ -1,7 +1,6 @@
 """This provides the base Protocol class implementation."""
 
 import re
-from os import getpid
 import time
 import logging
 import pexpect
@@ -10,7 +9,7 @@ import pexpect
 from condoor.exceptions import ConnectionError
 from condoor.utils import levenshtein_distance
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 class Protocol(object):

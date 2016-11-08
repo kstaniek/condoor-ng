@@ -250,6 +250,7 @@ def make_handler(log_dir, log_level):
             log_filename = os.path.join(log_dir, 'condoor.log')
             # FIXME: take pattern from pattern manager
             handler = FilteredFileHandler(log_filename, pattern=re.compile("s?ftp://.*:(.*)@"))
+            # handler = logging.FileHandler(log_filename)
 
         else:
             handler = logging.StreamHandler()

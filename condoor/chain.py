@@ -1,7 +1,6 @@
 """Provides the Chain class keeping the information about intermediate devices (jumphosts) on the paths to target."""
 import re
 import logging
-from os import getpid
 
 from condoor.device import Device
 from condoor.hopinfo import make_hop_info_from_url
@@ -9,7 +8,7 @@ from condoor.controller import Controller
 from condoor.protocols import make_protocol
 from condoor.exceptions import ConnectionError
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 def device_gen(chain, urls):
@@ -101,4 +100,10 @@ class Chain(object):
 
     def send(self, cmd, timeout, wait_for_string):
         """Send command to the target device."""
-        self.target_device.send(cmd, timeout=timeout, wait_for_string=wait_for_string)
+        return self.target_device.send(cmd, timeout=timeout, wait_for_string=wait_for_string)
+
+    def update(self, data):
+        """Update the chain object with the predefined data."""
+        for device, device_info in zip(self.devices, data):
+            device.device_info = device_info
+            logger.debug("Device information updated -> [{}]".format(device))

@@ -1,7 +1,6 @@
 """This is IOS river implementation."""
 
 from functools import partial
-from os import getpid
 import re
 import logging
 import pexpect
@@ -11,7 +10,7 @@ from condoor.actions import a_send_password, a_expected_prompt, a_send_line, a_s
 from condoor.exceptions import ConnectionAuthenticationError, ConnectionError
 from condoor.fsm import FSM
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 SAVE_CONFIG = re.compile(re.escape("System configuration has been modified. Save? [yes/no]: "))

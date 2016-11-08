@@ -11,8 +11,7 @@ from condoor.exceptions import ConnectionError
 from condoor.utils import FilteredFile, normalize_urls, make_handler
 import condoor
 
-logger = logging.getLogger("{}-{}".format(os.getpid(), __name__))
-
+logger = logging.getLogger(__name__)
 
 _CACHE_FILE = "/tmp/condoor.shelve"
 
@@ -20,24 +19,30 @@ _CACHE_FILE = "/tmp/condoor.shelve"
 class Connection(object):
     """Connection class providing the condoor API."""
 
-    def __init__(self, urls, log_dir=None, log_level=logging.DEBUG, log_session=True):
+    def __init__(self, name, urls, log_dir=None, log_level=logging.DEBUG, log_session=True):
         """Initialize the Connection object."""
         self._discovered = False
-        self._last_chain_index = 1
+        self._last_chain_index = 0
 
         self.log_session = log_session
+        top_logger = logging.getLogger("condoor")
 
-        top_logger = logging.getLogger("{}-{}".format(os.getpid(), 'condoor'))
-        if not len(top_logger.handlers):
+        if len(top_logger.handlers) == 0:
             self._handler = make_handler(log_dir, log_level)
             top_logger.addHandler(self._handler)
 
         top_logger.setLevel(log_level)
 
         self.session_fd = self._make_session_fd(log_dir)
-        logger.info("Condoor version {}".format(condoor.__version__))
+        top_logger.info("Condoor version {}".format(condoor.__version__))
 
         self.connection_chains = [Chain(self, url_list) for url_list in normalize_urls(urls)]
+
+    def __del__(self):
+        """Clean up the object."""
+        if self._handler:
+            top_logger = logging.getLogger("condoor")
+            top_logger.removeHandler(self._handler)
 
     def _make_session_fd(self, log_dir):
         session_fd = None
@@ -59,27 +64,53 @@ class Connection(object):
     def _get_key(self):
         key = md5()
         key.update(str(self.connection_chains))
+        logger.debug("Cache key: {}".format(self.connection_chains))
         return key.hexdigest()
 
-    def _write_cache(self):
+    def _cache_open(self, mode='r'):
         try:
-            cache = shelve.open(_CACHE_FILE, 'c')
+            cache = shelve.open(_CACHE_FILE, mode)
         except Exception:
-            logger.error("Unable to open a cache file for write")
-            return
+            logger.error("Unable to open a cache file for '{}'".format(mode))
+            return None
+        return cache
 
+    def _write_cache(self):
         key = self._get_key()
-        cache[key] = self.device_description_record
-        logger.info("Device description record cached: {}".format(key))
-        cache.close()
+        cache = self._cache_open(mode='c')
+        if cache is not None:
+            cache[key] = self.description_record
+            cache.close()
+            logger.info("Connection information cached: {}".format(key))
 
-    def connect(self, logfile=None):
+    def _read_cache(self):
+        key = self._get_key()
+        cache = self._cache_open(mode='r')
+        if cache is not None:
+            try:
+                self.description_record = cache[key]
+                logger.info("Used cached information.")
+            except KeyError:
+                logger.debug("Connection cache missed: {}.".format(key))
+            finally:
+                cache.close()
+
+    def _invalidate_cache(self):
+        key = self._get_key()
+        cache = self._cache_open(mode='c')
+        if cache is not None:
+            cache[key] = None
+            cache.close()
+            logger.info("Connection cache cleared.")
+
+    def connect(self, logfile=None, force_discovery=False):
         """Connect to the device.
 
         Args:
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
                 The session is logged only if ``log_session=True`` was passed to the constructor.
                 It the parameter is not passed then the default *session.log* file is created in `log_dir`.
+            force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
 
         Raises:
             ConnectionError: If the discovery method was not called first or there was a problem with getting
@@ -88,12 +119,19 @@ class Connection(object):
             ConnectionTimeoutError: If the connection timeout happened.
 
         """
+        logger.debug("Device connecting process started.")
+
         if logfile:
             self.session_fd = logfile
 
+        if force_discovery:
+            self._invalidate_cache()
+        else:
+            self._read_cache()
+
         chain_indices = deque(range(len(self.connection_chains)))
         chain_indices.rotate(self._last_chain_index)
-        excpt = ConnectionError("Unable to connect to the device")
+        excpt = ConnectionError("Unable to connect to the device.")
         for index in chain_indices:
             chain = self.connection_chains[index]
             self._last_chain_index = index
@@ -107,6 +145,8 @@ class Connection(object):
             raise excpt
 
         self._write_cache()
+        logger.debug("Device connecting process finished successfully.")
+        logger.debug("-" * 20)
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
         """Send the command to the device and return the output.
@@ -144,8 +184,8 @@ class Connection(object):
 
         """
         logger.info("Device discovery process started")
-        # TODO: invalidate cache
-        self.connect(logfile=logfile)
+        self.connect(logfile=logfile, force_discovery=True)
+        self.disconnect()
 
     def enable(self, enable_password=None):
         """Change the device mode to privileged.
@@ -359,10 +399,18 @@ class Connection(object):
         return self._chain.target_device.device_info
 
     @property
-    def device_description_record(self):
+    def description_record(self):
         """Return dict describing Connection object."""
         return {
-            'connections': [{'device_info': [device.device_info for device in chain.devices]}
+            'connections': [{'chain': [device.device_info for device in chain.devices]}
                             for chain in self.connection_chains],
             'last_chain': self._last_chain_index,
+            'version': condoor.__version__,
         }
+
+    @description_record.setter
+    def description_record(self, cdr):
+        for chain, data in zip(self.connection_chains, cdr['connections']):
+            chain.update(data['chain'])
+        self._last_chain_index = cdr['last_chain']
+        logger.debug("Connection information updated from cache.")

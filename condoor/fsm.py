@@ -1,6 +1,5 @@
 """Provides Finite State Machine implementation."""
 
-from os import getpid
 from inspect import isclass
 from functools import wraps
 import logging
@@ -10,17 +9,17 @@ from pexpect import EOF
 from condoor.exceptions import ConnectionError
 from condoor.utils import pattern_to_str
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 def action(func):
     """Wrapper for FSM action function providing extended loging information based on doc string."""
     @wraps(func)
-    def with_logging(*args, **kwargs):
+    def call_action(*args, **kwargs):
         """Wrap the function with logger debug."""
-        logger.debug("A={}".format(func.__doc__))
+        logger.debug("A={}".format(func.__doc__.split('\n', 1)[0]))
         return func(*args, **kwargs)
-    return with_logging
+    return call_action
 
 
 class FSM(object):

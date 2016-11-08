@@ -1,7 +1,6 @@
 """This is generic driver class implementation."""
 
 from functools import partial
-from os import getpid
 import re
 import logging
 import pexpect
@@ -13,7 +12,7 @@ from condoor.utils import pattern_to_str
 
 from condoor import pattern_manager
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 class Driver(object):
@@ -283,7 +282,7 @@ class Driver(object):
         except re.error as e:  # pylint: disable=invalid-name
             raise RuntimeError("Pattern compile error: {} ({}:{})".format(e.message, self.platform, patterns_re))
 
-        logger.debug("Dynamic prompt: '{}'".format(prompt_re.pattern))
+        logger.debug("Platform: {} -> Dynamic prompt: '{}'".format(self.platform, prompt_re.pattern))
         return prompt_re
 
     def update_config_mode(self, prompt):  # pylint: disable=no-self-use

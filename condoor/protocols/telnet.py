@@ -2,7 +2,6 @@
 
 from functools import partial
 import re
-from os import getpid
 import logging
 import pexpect
 
@@ -14,7 +13,7 @@ from condoor.actions import a_send, a_send_line, a_send_password, a_authenticati
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 # Telnet connection initiated

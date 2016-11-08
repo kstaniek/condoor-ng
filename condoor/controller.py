@@ -1,13 +1,12 @@
 """Provides the Controller class which is a wrapper to the pyexpect.spawn class."""
 
-from os import getpid
 import logging
 import pexpect
 
 from condoor.utils import delegate
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 # Delegate following methods to _session class

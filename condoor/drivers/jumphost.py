@@ -1,13 +1,12 @@
 """This is jumphost driver class implementation."""
 
-from os import getpid
 import re
 import logging
 
 from condoor.drivers.generic import Driver as Generic
 from condoor import pattern_manager, CommandError
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 class Driver(Generic):

@@ -1,10 +1,9 @@
 """This is a Wind River Linux driver implementation."""
 
-from os import getpid
 import logging
 from condoor.drivers.generic import Driver as Generic
 
-logger = logging.getLogger("{}-{}".format(getpid(), __name__))
+logger = logging.getLogger(__name__)
 
 
 class Driver(Generic):
