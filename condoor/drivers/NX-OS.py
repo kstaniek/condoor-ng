@@ -34,7 +34,7 @@ class Driver(Generic):
     def update_driver(self, prompt):
         """Return driver name based on prompt analysis."""
         logger.debug(prompt)
-        platform = pattern_manager.get_platform_based_on_prompt(prompt)
+        platform = pattern_manager.platform(prompt)
         if platform == 'IOS':
             platform = 'NX-OS'
 

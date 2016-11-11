@@ -69,7 +69,7 @@ class Device(object):
             'family': self.family,
             'platform': self.platform,
             'os_type': self.os_type,
-            'os_verison': self.os_version,
+            'os_version': self.os_version,
             'udi': self.udi,
             'driver_name': self.driver.platform,
             'mode': self.mode,

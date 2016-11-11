@@ -39,7 +39,7 @@ class Driver(Generic):
     def update_driver(self, prompt):
         """Return driver name based on prompt analysis."""
         logger.debug(prompt)
-        platform = pattern_manager.get_platform_based_on_prompt(prompt)
+        platform = pattern_manager.platform(prompt)
         # to avoid the XR platform detection as eXR and XR prompts are the same
         if platform == 'XR':
             platform = 'eXR'
@@ -55,7 +55,7 @@ class Driver(Generic):
         """Execute after connect."""
         # TODO: check if this works.
         show_users = self.device.send("show users", timeout=120)
-        result = re.search(pattern_manager.get_pattern(self.platform, 'connected_locally'), show_users)
+        result = re.search(pattern_manager.pattern(self.platform, 'connected_locally'), show_users)
         if result:
             logger.debug('Locally connected to Calvados. Exiting.')
             self.device.send('exit')

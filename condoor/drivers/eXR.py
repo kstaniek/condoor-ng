@@ -37,9 +37,9 @@ class Driver(Generic):
     def __init__(self, device):
         """Initialize the XR 64 bit Driver object."""
         super(Driver, self).__init__(device)
-        self.calvados_re = pattern_manager.get_pattern(self.platform, 'calvados')
-        self.calvados_connect_re = pattern_manager.get_pattern(self.platform, 'calvados_connect')
-        self.calvados_term_length = pattern_manager.get_pattern(self.platform, 'calvados_term_length')
+        self.calvados_re = pattern_manager.pattern(self.platform, 'calvados')
+        self.calvados_connect_re = pattern_manager.pattern(self.platform, 'calvados_connect')
+        self.calvados_term_length = pattern_manager.pattern(self.platform, 'calvados_term_length')
 
     def get_version_text(self):
         """Return version information text."""
@@ -49,7 +49,7 @@ class Driver(Generic):
     def update_driver(self, prompt):
         """Return driver name based on prompt analysis."""
         logger.debug(prompt)
-        platform = pattern_manager.get_platform_based_on_prompt(prompt)
+        platform = pattern_manager.platform(prompt)
         # to avoid the XR platform detection as eXR and XR prompts are the same
         if platform == 'XR':
             platform = 'eXR'

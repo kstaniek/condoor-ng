@@ -68,7 +68,7 @@ class TestNX9KConnection(TestCase):
 
     def test_NX9K_1_discovery(self):
         urls = ["telnet://admin:admin@127.0.0.1:10024"]
-        conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
         self.conn = conn
         conn.connect(self.logfile_condoor)
 
@@ -93,14 +93,14 @@ class TestNX9KConnection(TestCase):
 
     def test_NX9K_2_connection_wrong_user(self):
         urls = ["telnet://root:admin@127.0.0.1:10024"]
-        self.conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        self.conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
 
         with self.assertRaises(condoor.ConnectionAuthenticationError):
             self.conn.connect(self.logfile_condoor)
 
     def test_NX9K_3_connection_refused(self):
         urls = ["telnet://admin:admin@127.0.0.1:10023"]
-        self.conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        self.conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
         with self.assertRaises(condoor.ConnectionError):
             self.conn.connect(self.logfile_condoor)
 

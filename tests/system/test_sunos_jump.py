@@ -66,15 +66,15 @@ class TestSunConnection(TestCase):
 
     def test_sun_connection(self):
         urls = ["telnet://admin:admin@127.0.0.1:10023", "telnet://admin:admin@host1"]
-        conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
 
         with self.assertRaises(condoor.ConnectionTimeoutError):
             conn.connect(self.logfile_condoor)
-        print(conn.device_description_record)
+        print(conn.description_record)
 
     def test_sun_connection_wrong_passowrd(self):
         urls = ["telnet://admin:wrong@127.0.0.1:10023", "telnet://admin:admin@host1"]
-        conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
 
         with self.assertRaises(condoor.ConnectionAuthenticationError):
             conn.connect(self.logfile_condoor)

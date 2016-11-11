@@ -30,25 +30,25 @@ class Driver(object):
         self.device = device
 
         # FIXME: Do something with this, it's insane
-        self.prompt_re = pattern_manager.get_pattern(self.platform, 'prompt')
-        self.syntax_error_re = pattern_manager.get_pattern(self.platform, 'syntax_error')
-        self.connection_closed_re = pattern_manager.get_pattern(self.platform, 'connection_closed')
-        self.press_return_re = pattern_manager.get_pattern(self.platform, 'press_return')
-        self.more_re = pattern_manager.get_pattern(self.platform, 'more')
-        self.rommon_re = pattern_manager.get_pattern(self.platform, 'rommon')
-        self.buffer_overflow_re = pattern_manager.get_pattern(self.platform, 'buffer_overflow')
+        self.prompt_re = pattern_manager.pattern(self.platform, 'prompt')
+        self.syntax_error_re = pattern_manager.pattern(self.platform, 'syntax_error')
+        self.connection_closed_re = pattern_manager.pattern(self.platform, 'connection_closed')
+        self.press_return_re = pattern_manager.pattern(self.platform, 'press_return')
+        self.more_re = pattern_manager.pattern(self.platform, 'more')
+        self.rommon_re = pattern_manager.pattern(self.platform, 'rommon')
+        self.buffer_overflow_re = pattern_manager.pattern(self.platform, 'buffer_overflow')
 
-        self.username_re = pattern_manager.get_pattern(self.platform, 'username')
-        self.password_re = pattern_manager.get_pattern(self.platform, 'password')
-        self.unable_to_connect_re = pattern_manager.get_pattern(self.platform, 'unable_to_connect')
-        self.timeout_re = pattern_manager.get_pattern(self.platform, 'timeout')
-        self.standby_re = pattern_manager.get_pattern(self.platform, 'standby')
+        self.username_re = pattern_manager.pattern(self.platform, 'username')
+        self.password_re = pattern_manager.pattern(self.platform, 'password')
+        self.unable_to_connect_re = pattern_manager.pattern(self.platform, 'unable_to_connect')
+        self.timeout_re = pattern_manager.pattern(self.platform, 'timeout')
+        self.standby_re = pattern_manager.pattern(self.platform, 'standby')
 
-        self.pid2platform_re = pattern_manager.get_pattern(self.platform, 'pid2platform')
-        self.platform_re = pattern_manager.get_pattern(self.platform, 'platform', compiled=False)
-        self.version_re = pattern_manager.get_pattern(self.platform, 'version', compiled=False)
-        self.vty_re = pattern_manager.get_pattern(self.platform, 'vty')
-        self.console_re = pattern_manager.get_pattern(self.platform, 'console')
+        self.pid2platform_re = pattern_manager.pattern(self.platform, 'pid2platform')
+        self.platform_re = pattern_manager.pattern(self.platform, 'platform', compiled=False)
+        self.version_re = pattern_manager.pattern(self.platform, 'version', compiled=False)
+        self.vty_re = pattern_manager.pattern(self.platform, 'vty')
+        self.console_re = pattern_manager.pattern(self.platform, 'console')
 
     def __repr__(self):
         """Return the string representation of the driver class."""
@@ -175,7 +175,7 @@ class Driver(object):
     def update_driver(self, prompt):
         """Update driver based on the prompt."""
         logger.debug(prompt)
-        platform = pattern_manager.get_platform_based_on_prompt(prompt)
+        platform = pattern_manager.platform(prompt)
         if platform:
             logger.debug('{} -> {}'.format(self.platform, platform))
             return platform
@@ -272,7 +272,7 @@ class Driver(object):
 
     def make_dynamic_prompt(self, prompt):
         """Extend prompt with flexible mode handling regexp."""
-        patterns = [pattern_manager.get_pattern(
+        patterns = [pattern_manager.pattern(
             self.platform, pattern_name, compiled=False) for pattern_name in self.target_prompt_components]
 
         patterns_re = "|".join(patterns).format(prompt=re.escape(prompt[:-1]))

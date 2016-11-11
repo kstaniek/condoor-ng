@@ -72,10 +72,11 @@ class TestASR9KConnection(TestCase):
             pass
 
         urls = ["telnet://admin:admin@127.0.0.1:10023"]
-        conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
         self.conn = conn
         conn.connect(self.logfile_condoor)
 
+        # TODO: Test if device_info is correct
         self.assertEqual(conn.is_discovered, True, "Not discovered properly")
         self.assertEqual(conn.hostname, "ios", "Wrong Hostname: {}".format(conn.hostname))
         self.assertEqual(conn.family, "ASR9K", "Wrong Family: {}".format(conn.family))
@@ -97,7 +98,7 @@ class TestASR9KConnection(TestCase):
     def test_ASR9K_2_discovery(self):
         """ASR9k: Test whether the cached information is used"""
         urls = ["telnet://admin:admin@127.0.0.1:10023"]
-        conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
         self.conn = conn
         conn.connect(self.logfile_condoor)
 
@@ -122,7 +123,7 @@ class TestASR9KConnection(TestCase):
     def test_ASR9K_3_connection_wrong_user(self):
         """ASR9k: Test wrong username"""
         urls = ["telnet://root:admin@127.0.0.1:10023"]
-        self.conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        self.conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
 
         with self.assertRaises(condoor.ConnectionAuthenticationError):
             self.conn.connect(self.logfile_condoor)
@@ -130,7 +131,7 @@ class TestASR9KConnection(TestCase):
     def test_ASR9K_4_connection_refused(self):
         """ASR9k: Test when the connection is refused"""
         urls = ["telnet://admin:admin@127.0.0.1:10024"]
-        self.conn = condoor.Connection(urls, log_session=self.log_session, log_level=self.log_level)
+        self.conn = condoor.Connection("host", urls, log_session=self.log_session, log_level=self.log_level)
         with self.assertRaises(condoor.ConnectionError):
             self.conn.connect(self.logfile_condoor)
 

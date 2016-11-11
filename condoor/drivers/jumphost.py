@@ -43,7 +43,7 @@ class Driver(Generic):
 
     def make_dynamic_prompt(self, prompt):
         """Extend prompt with flexible mode handling regexp."""
-        patterns = [pattern_manager.get_pattern(
+        patterns = [pattern_manager.pattern(
             self.platform, pattern_name, compiled=False) for pattern_name in self.target_prompt_components]
 
         patterns_re = "|".join(patterns).format(prompt=re.escape(prompt))

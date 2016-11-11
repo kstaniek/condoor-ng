@@ -7,7 +7,7 @@ generic:
   prompt_dynamic: '{prompt}[#>]'
   username: '[U|u]sername:\s|login:\s?'
   password: '[P|p]assword:\s?'
-  passowrd_filter: '[s]ftp://.*:(.*)@")'
+  privacy_filter: 's?ftp://.*:(.*)@'
   # to capture the platform string from show version
   pid2platform: '([A-Z]{3}[-| ]?[0-9]{3,4})'
   # platform string
@@ -37,13 +37,13 @@ generic:
     - Calvados
     - Windriver
 
+  # prompts for platforms detection
   prompt_detection:
     - XR
     - Calvados
     - Windriver
     - IOS
     - NX-OS
-
 
   press_return: 'Press RETURN to get started\.'
   more: ' --More-- '
