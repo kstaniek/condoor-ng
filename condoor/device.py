@@ -263,7 +263,7 @@ class Device(object):
             return self.make_driver()
             # raise GeneralError("Platform {} not supported".format(driver_name))
 
-        logger.debug("Device: {} -> Driver: {}".format(self, driver_class.platform))
+        logger.debug("Make Device: {} with Driver: {}".format(self, driver_class.platform))
         return driver_class(self)
 
     def get_previous_prompts(self):
