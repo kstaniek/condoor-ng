@@ -1,13 +1,14 @@
 """Provides the main Connection class."""
 import re
 import os
+import time
 import shelve
 import logging
 from hashlib import md5
 
 from collections import deque
 from condoor.chain import Chain
-from condoor.exceptions import ConnectionError
+from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 from condoor.utils import FilteredFile, normalize_urls, make_handler
 import condoor
 
@@ -103,6 +104,13 @@ class Connection(object):
             cache.close()
             logger.info("Connection cache cleared.")
 
+    def _chain_indices(self):
+        """Get the deque of chain indices starting with last successful index."""
+        chain_indices = deque(range(len(self.connection_chains)))
+        chain_indices.rotate(self._last_chain_index)
+        return chain_indices
+
+
     def connect(self, logfile=None, force_discovery=False):
         """Connect to the device.
 
@@ -119,7 +127,7 @@ class Connection(object):
             ConnectionTimeoutError: If the connection timeout happened.
 
         """
-        logger.debug("Device connecting process started.")
+        logger.debug("Connecting to the device.")
 
         if logfile:
             self.session_fd = logfile
@@ -129,10 +137,8 @@ class Connection(object):
         else:
             self._read_cache()
 
-        chain_indices = deque(range(len(self.connection_chains)))
-        chain_indices.rotate(self._last_chain_index)
         excpt = ConnectionError("Unable to connect to the device.")
-        for index in chain_indices:
+        for index in self._chain_indices:
             chain = self.connection_chains[index]
             self._last_chain_index = index
             try:
@@ -145,8 +151,69 @@ class Connection(object):
             raise excpt
 
         self._write_cache()
-        logger.debug("Device connecting process finished successfully.")
+        logger.debug("Device connected successfully.")
         logger.debug("-" * 20)
+
+    def reconnect(self, max_timeout=360, logfile=None, force_discovery=False):
+        """This method reconnects to the device. It can be called when after device reloads or the session was
+        disconnected either by device or jumphost. If multiple jumphosts are used then `reconnect` starts from
+        the last valid connection.
+
+        Args:
+            max_timeout (int): This is the maximum amount of time during the session tries to reconnect. It may take
+                longer depending on the TELNET or SSH default timeout.
+            logfile (file): Optional file descriptor for session logging. The file must be open for write.
+                The session is logged only if ``log_session=True`` was passed to the constructor.
+                It the parameter is not passed then the default *session.log* file is created in `log_dir`.
+            force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
+
+        Raises:
+            ConnectionError: If the discovery method was not called first or there was a problem with getting
+             the connection.
+            ConnectionAuthenticationError: If the authentication failed.
+            ConnectionTimeoutError: If the connection timeout happened.
+
+        """
+
+        if logfile:
+            self.session_fd = logfile
+
+        self._invalidate_cache() if force_discovery else self._read_cache()
+
+
+        chain_indices = self._chain_indices()
+        excpt = ConnectionError("Could not reconnect to the device.")
+
+        logger.info("Trying to reconnect within {} seconds".format(max_timeout))
+        sleep_time = 0
+        begin = time.time()
+        attempt = 1
+        elapsed = 0
+        while max_timeout - elapsed > 0:
+            if sleep_time > 0:
+                logger.debug("Sleep {:.0f}s".format(sleep_time))
+                time.sleep(sleep_time)
+
+            # up
+            elapsed = time.time() - begin
+            logger.debug("Reconnecting. Attempt {} Elapsed {:.1f}s".format(attempt, elapsed))
+            try:
+                index = chain_indices[0]
+                chain = self.connection_chains[index]
+                self._last_chain_index = index
+                if chain.connect():
+                    break
+            except ConnectionError as e:  # pylint: disable=invalid-name
+                # TODO: Make a configuration parameter
+                elapsed = time.time() - begin
+                sleep_time = min(30, max_timeout - elapsed)
+                # move to the next index
+                chain_indices.rotate(-1)
+                excpt = e
+            attempt += 1
+        else:
+            logger.error("Could not reconnect to the device within {:.2f}s".format(elapsed))
+            raise excpt
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
         """Send the command to the device and return the output.

@@ -39,6 +39,7 @@ class Chain(object):
     def connect(self):
         """Connect to the target device using the intermediate jumphosts."""
         device = None
+        logger.debug("Connecting to: {}".format(str(self)))
         for device in self.devices:
             protocol_name = device.get_protocol_name()
             device.protocol = make_protocol(protocol_name, device)
