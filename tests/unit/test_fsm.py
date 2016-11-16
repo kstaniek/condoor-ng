@@ -104,6 +104,7 @@ class TestFSM(TestCase):
 
         @action
         def action2(ctx):
+            """Action 2"""
             ctx.ctrl.expect.return_value = 2
             self.assertEqual(str(ctx), "FSM Context:E=1,S=1,FI=False,M=''")
             return True
@@ -233,6 +234,7 @@ class TestFSM(TestCase):
 
         @action
         def action1(value, ctx):
+            """Action 1"""
             self.assertEqual(value, "test_value")
             return True
 
@@ -264,6 +266,7 @@ class TestFSM(TestCase):
 
         @action
         def action1(value, ctx):
+            """Action 1"""
             return True
 
         events = "STATE2"
