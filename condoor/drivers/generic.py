@@ -259,7 +259,7 @@ class Driver(object):
         """
         logger.info("Privileged mode not supported on {} platform".format(self.platform))
 
-    def reload(self, rommon_boot_command="boot", reload_timeout=300, save_config=True):
+    def reload(self, reload_timeout=300, save_config=True):
         """Reload the device and waits for device to boot up.
 
         It posts the informational message to the log if not implemented by device driver.
