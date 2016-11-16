@@ -17,7 +17,10 @@ def action(func):
     @wraps(func)
     def call_action(*args, **kwargs):
         """Wrap the function with logger debug."""
-        logger.debug("A={}".format(func.__doc__.split('\n', 1)[0]))
+        if func.__doc__ is None:
+            logger.debug("A={}".format(func.__name__))
+        else:
+            logger.debug("A={}".format(func.__doc__.split('\n', 1)[0]))
         return func(*args, **kwargs)
     return call_action
 
