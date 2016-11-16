@@ -8,7 +8,7 @@ from hashlib import md5
 
 from collections import deque
 from condoor.chain import Chain
-from condoor.exceptions import ConnectionError, ConnectionTimeoutError
+from condoor.exceptions import ConnectionError
 from condoor.utils import FilteredFile, normalize_urls, make_handler
 import condoor
 
@@ -110,7 +110,6 @@ class Connection(object):
         chain_indices.rotate(self._last_chain_index)
         return chain_indices
 
-
     def connect(self, logfile=None, force_discovery=False):
         """Connect to the device.
 
@@ -138,7 +137,7 @@ class Connection(object):
             self._read_cache()
 
         excpt = ConnectionError("Unable to connect to the device.")
-        for index in self._chain_indices:
+        for index in self._chain_indices():
             chain = self.connection_chains[index]
             self._last_chain_index = index
             try:
@@ -179,7 +178,6 @@ class Connection(object):
             self.session_fd = logfile
 
         self._invalidate_cache() if force_discovery else self._read_cache()
-
 
         chain_indices = self._chain_indices()
         excpt = ConnectionError("Could not reconnect to the device.")
@@ -264,6 +262,11 @@ class Connection(object):
                 provided but required the password from url will be used. Refer to :class:`condoor.Connection`
         """
         self._chain.target_device.enable(enable_password)
+
+    def reload(self, reload_timeout=300, save_config=True):
+        """Reload the device and wait for device to boot up."""
+
+        self._chain.target_device.reload(reload_timeout, save_config)
 
     def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
         """Instantiate and run the Finite State Machine for the current device connection.
