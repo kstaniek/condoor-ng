@@ -154,7 +154,9 @@ class Connection(object):
         logger.debug("-" * 20)
 
     def reconnect(self, max_timeout=360, logfile=None, force_discovery=False):
-        """This method reconnects to the device. It can be called when after device reloads or the session was
+        """Reconnect to the device.
+
+        It can be called when after device reloads or the session was
         disconnected either by device or jumphost. If multiple jumphosts are used then `reconnect` starts from
         the last valid connection.
 
@@ -173,7 +175,6 @@ class Connection(object):
             ConnectionTimeoutError: If the connection timeout happened.
 
         """
-
         if logfile:
             self.session_fd = logfile
 
@@ -265,7 +266,6 @@ class Connection(object):
 
     def reload(self, reload_timeout=300, save_config=True):
         """Reload the device and wait for device to boot up."""
-
         self._chain.target_device.reload(reload_timeout, save_config)
 
     def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):

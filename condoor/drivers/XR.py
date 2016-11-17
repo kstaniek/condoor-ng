@@ -28,6 +28,7 @@ class Driver(Generic):
         super(Driver, self).__init__(device)
 
     def reload(self, reload_timeout, save_config):
+        """Reload the device."""
         pass
 
         # PROCEED = re.compile(re.escape("Proceed with reload? [confirm]"))
