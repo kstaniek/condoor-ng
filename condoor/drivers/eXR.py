@@ -7,6 +7,7 @@ import pexpect
 from condoor.exceptions import CommandSyntaxError, CommandTimeoutError, ConnectionError
 from condoor.actions import a_connection_closed, a_expected_prompt, a_stays_connected, a_unexpected_prompt, a_send, \
     a_store_cmd_result
+from condoor.utils import pattern_to_str
 from condoor.fsm import FSM
 from condoor.drivers.generic import Driver as Generic
 from condoor import pattern_manager
@@ -74,8 +75,8 @@ class Driver(Generic):
         # add detected prompts chain
         events += self.device.get_previous_prompts()  # without target prompt
 
-        logger.debug("Waiting for prompt: {}".format(self.device.prompt_re.pattern))
-        logger.debug(expected_string.pattern)
+        llogger.debug("Expecting: {}".format(pattern_to_str(expected_string)))
+
 
         transitions = [
             (self.syntax_error_re, [0], -1, CommandSyntaxError("Command unknown", self.device.hostname), 0),

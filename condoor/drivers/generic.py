@@ -193,7 +193,7 @@ class Driver(object):
         # add detected prompts chain
         events += self.device.get_previous_prompts()  # without target prompt
 
-        logger.debug("Expected: {}".format(pattern_to_str(expected_string)))
+        logger.debug("Expecting: {}".format(pattern_to_str(expected_string)))
 
         transitions = [
             (self.syntax_error_re, [0], -1, CommandSyntaxError("Command unknown", self.device.hostname), 0),
