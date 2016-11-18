@@ -106,6 +106,7 @@ class Connection(object):
                 logger.debug("Connection cache missed: {}.".format(key))
             cache.close()
             logger.info("Connection cache cleared.")
+        self.description_record = None
 
     def _chain_indices(self):
         """Get the deque of chain indices starting with last successful index."""
@@ -143,7 +144,7 @@ class Connection(object):
             try:
                 if chain.connect():
                     break
-            except ConnectionTimeoutError as e:  # pylint: disable=invalid-name
+            except (ConnectionTimeoutError, ConnectionError) as e:  # pylint: disable=invalid-name
                 excpt = e
         else:
             # invalidate cache
@@ -202,7 +203,7 @@ class Connection(object):
                 self._last_chain_index = index
                 if chain.connect():
                     break
-            except ConnectionTimeoutError as e:  # pylint: disable=invalid-name
+            except (ConnectionTimeoutError, ConnectionError) as e:  # pylint: disable=invalid-name
                 # TODO: Make a configuration parameter
                 elapsed = time.time() - begin
                 sleep_time = min(30, max_timeout - elapsed)
@@ -485,7 +486,11 @@ class Connection(object):
     @description_record.setter
     def description_record(self, cdr):
         if cdr is None:
-            logger.debug("Invalid connection information")
+            cdr = self.description_record
+            for chain, data in zip(self.connection_chains, cdr['connections']):
+                chain.update(None)
+
+            logger.debug("Connection information cleared")
             return
 
         try:

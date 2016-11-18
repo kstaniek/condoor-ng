@@ -89,6 +89,17 @@ class Device(object):
         """Return string representing node info."""
         return str(self.node_info)
 
+    def clear_info(self):
+        self._version_text = None
+        self._inventory_text = None
+        self._users_text = None
+        self.os_version = None
+        self.os_type = None
+        self.family = None
+        self.platform = None
+        self.udi = None
+        self.is_console = None
+
     def connect(self, ctrl):
         """Connect to the device."""
         if self.prompt:

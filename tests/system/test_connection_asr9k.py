@@ -90,7 +90,7 @@ class TestASR9KConnection(TestCase):
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
         self.assertEqual(conn.udi['sn'], "FOX1830GT5W", "Wrong S/N: {}".format(conn.udi['sn']))
         self.assertEqual(conn.prompt, "RP/0/RP0/CPU0:ios#", "Wrong Prompt: {}".format(conn.prompt))
-        self.assertEqual(conn.is_console, True, "Console: {}".format(conn.is_console))
+        self.assertEqual(conn.is_console, False, "Console: {}".format(conn.is_console))
 
         with self.assertRaises(condoor.CommandSyntaxError):
             conn.send("wrongcommand")
@@ -117,7 +117,7 @@ class TestASR9KConnection(TestCase):
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
         self.assertEqual(conn.udi['sn'], "FOX1830GT5W", "Wrong S/N: {}".format(conn.udi['sn']))
         self.assertEqual(conn.prompt, "RP/0/RP0/CPU0:ios#", "Wrong Prompt: {}".format(conn.prompt))
-        self.assertEqual(conn.is_console, True, "Console: {}".format(conn.is_console))
+        self.assertEqual(conn.is_console, False, "Console: {}".format(conn.is_console))
 
         with self.assertRaises(condoor.CommandSyntaxError):
             conn.send("wrongcommand")
@@ -159,7 +159,7 @@ class TestASR9KConnection(TestCase):
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
         self.assertEqual(conn.udi['sn'], "FOX1830GT5W", "Wrong S/N: {}".format(conn.udi['sn']))
         self.assertEqual(conn.prompt, "RP/0/RP0/CPU0:ios#", "Wrong Prompt: {}".format(conn.prompt))
-        self.assertEqual(conn.is_console, True, "Console: {}".format(conn.is_console))
+        self.assertEqual(conn.is_console, False, "Console: {}".format(conn.is_console))
 
         conn.disconnect()
 
@@ -184,7 +184,7 @@ class TestASR9KConnection(TestCase):
         self.assertEqual(conn.udi['vid'], "V01", "Wrong VID: {}".format(conn.udi['vid']))
         self.assertEqual(conn.udi['sn'], "FOX1830GT5W", "Wrong S/N: {}".format(conn.udi['sn']))
         self.assertEqual(conn.prompt, "RP/0/RP0/CPU0:ios#", "Wrong Prompt: {}".format(conn.prompt))
-        self.assertEqual(conn.is_console, True, "Console: {}".format(conn.is_console))
+        self.assertEqual(conn.is_console, False, "Console: {}".format(conn.is_console))
 
         conn.disconnect()
 

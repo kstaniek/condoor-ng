@@ -105,6 +105,10 @@ class Chain(object):
 
     def update(self, data):
         """Update the chain object with the predefined data."""
-        for device, device_info in zip(self.devices, data):
-            device.device_info = device_info
-            logger.debug("Device information updated -> [{}]".format(device))
+        if data is None:
+            for device in self.devices:
+                device.clear_info()
+        else:
+            for device, device_info in zip(self.devices, data):
+                device.device_info = device_info
+                logger.debug("Device information updated -> [{}]".format(device))
