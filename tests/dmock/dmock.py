@@ -385,7 +385,7 @@ class ASR901Handler(IOSXEHandler):
 if __name__ == '__main__':
 
     from threading import Thread
-    server = TelnetServer(("127.0.0.1", 10025), ASR920Handler)
+    server = TelnetServer(("127.0.0.1", 10025), ASR9KHandler)
     server_thread = Thread(target=server.serve_forever)
     server_thread.daemon = True
     server_thread.start()
