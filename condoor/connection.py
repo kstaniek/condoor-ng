@@ -8,7 +8,7 @@ from hashlib import md5
 
 from collections import deque
 from condoor.chain import Chain
-from condoor.exceptions import ConnectionError
+from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 from condoor.utils import FilteredFile, normalize_urls, make_handler
 import condoor
 
@@ -96,11 +96,14 @@ class Connection(object):
             finally:
                 cache.close()
 
-    def _invalidate_cache(self):
+    def _clear_cache(self):
         key = self._get_key()
         cache = self._cache_open(mode='c')
         if cache is not None:
-            cache[key] = None
+            try:
+                del cache[key]
+            except KeyError:
+                logger.debug("Connection cache missed: {}.".format(key))
             cache.close()
             logger.info("Connection cache cleared.")
 
@@ -131,10 +134,7 @@ class Connection(object):
         if logfile:
             self.session_fd = logfile
 
-        if force_discovery:
-            self._invalidate_cache()
-        else:
-            self._read_cache()
+        self._clear_cache() if force_discovery else self._read_cache()
 
         excpt = ConnectionError("Unable to connect to the device.")
         for index in self._chain_indices():
@@ -143,7 +143,7 @@ class Connection(object):
             try:
                 if chain.connect():
                     break
-            except ConnectionError as e:  # pylint: disable=invalid-name
+            except ConnectionTimeoutError as e:  # pylint: disable=invalid-name
                 excpt = e
         else:
             # invalidate cache
@@ -153,7 +153,7 @@ class Connection(object):
         logger.debug("Device connected successfully.")
         logger.debug("-" * 20)
 
-    def reconnect(self, max_timeout=360, logfile=None, force_discovery=False):
+    def reconnect(self, logfile=None, max_timeout=360, force_discovery=False):
         """Reconnect to the device.
 
         It can be called when after device reloads or the session was
@@ -161,11 +161,11 @@ class Connection(object):
         the last valid connection.
 
         Args:
-            max_timeout (int): This is the maximum amount of time during the session tries to reconnect. It may take
-                longer depending on the TELNET or SSH default timeout.
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
                 The session is logged only if ``log_session=True`` was passed to the constructor.
                 It the parameter is not passed then the default *session.log* file is created in `log_dir`.
+            max_timeout (int): This is the maximum amount of time during the session tries to reconnect. It may take
+                longer depending on the TELNET or SSH default timeout.
             force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
 
         Raises:
@@ -178,7 +178,7 @@ class Connection(object):
         if logfile:
             self.session_fd = logfile
 
-        self._invalidate_cache() if force_discovery else self._read_cache()
+        self._clear_cache() if force_discovery else self._read_cache()
 
         chain_indices = self._chain_indices()
         excpt = ConnectionError("Could not reconnect to the device.")
@@ -202,7 +202,7 @@ class Connection(object):
                 self._last_chain_index = index
                 if chain.connect():
                     break
-            except ConnectionError as e:  # pylint: disable=invalid-name
+            except ConnectionTimeoutError as e:  # pylint: disable=invalid-name
                 # TODO: Make a configuration parameter
                 elapsed = time.time() - begin
                 sleep_time = min(30, max_timeout - elapsed)
@@ -213,6 +213,10 @@ class Connection(object):
         else:
             logger.error("Could not reconnect to the device within {:.2f}s".format(elapsed))
             raise excpt
+
+        self._write_cache()
+        logger.debug("Device connected successfully.")
+        logger.debug("-" * 20)
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
         """Send the command to the device and return the output.
@@ -480,7 +484,15 @@ class Connection(object):
 
     @description_record.setter
     def description_record(self, cdr):
-        for chain, data in zip(self.connection_chains, cdr['connections']):
-            chain.update(data['chain'])
-        self._last_chain_index = cdr['last_chain']
+        if cdr is None:
+            logger.debug("Invalid connection information")
+            return
+
+        try:
+            for chain, data in zip(self.connection_chains, cdr['connections']):
+                chain.update(data['chain'])
+            self._last_chain_index = cdr['last_chain']
+        except KeyError:
+            logger.debug("Invalid connection information")
+
         logger.debug("Connection information updated from cache.")
