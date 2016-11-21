@@ -72,7 +72,7 @@ class SSH(Protocol):
 
     def authenticate(self, driver):
         """Authenticate using the SSH protocol specific FSM."""
-        #              0                     1                    2                3
+        #              0                     1                    2                  3
         events = [driver.press_return_re, driver.password_re, self.device.prompt_re, pexpect.TIMEOUT]
 
         transitions = [

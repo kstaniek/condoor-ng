@@ -1,0 +1,9 @@
+protocol:
+  telnet:
+    timeout: 10
+
+  telnet-console:
+    timeout: 20
+
+  ssh:
+    first_prompt_timeout = 30

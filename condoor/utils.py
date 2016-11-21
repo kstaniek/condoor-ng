@@ -5,6 +5,7 @@ import socket
 import time
 import re
 import os
+import yaml
 
 
 def delegate(attribute_name, method_names):
@@ -260,3 +261,52 @@ def make_handler(log_dir, log_level):
         handler = logging.NullHandler()
 
     return handler
+
+
+def yaml_file_to_dict(script_name, path=None):
+    """Read yaml file and return the dict.
+
+    It assumes the module file exists with the defaults.
+    If the CONDOOR_{SCRIPT_NAME} env is set then the user file from the env is loaded and merged with the default
+
+    There can be user file located in ~/.condoor directory with the {script_name}.yaml filename. If exists
+    it is merget with default config.
+    """
+    def load_yaml(file_path):
+        """Load YAML file from full file path and return dict."""
+        with open(file_path, 'r') as yamlfile:
+            try:
+                dictionary = yaml.load(yamlfile)
+            except yaml.YAMLError:
+                return {}
+        return dictionary
+
+    def merge(user, default):
+        """Merge two dicts."""
+        if isinstance(user, dict) and isinstance(default, dict):
+            for k, v in default.iteritems():
+                if k not in user:
+                    user[k] = v
+                else:
+                    user[k] = merge(user[k], v)
+            return user
+        else:
+            return default
+
+    if path is None:
+        path = os.path.abspath('.')
+
+    config_file_path = os.path.join(path, script_name + '.yaml')
+    if not os.path.exists(config_file_path):
+        raise RuntimeError('Config file does not exist: {}'.format(config_file_path))
+
+    default_dict = load_yaml(config_file_path)
+
+    user_config_file_path = os.path.join(os.path.expanduser('~'), '.condoor', script_name + '.yaml')
+    user_config_file_path = os.getenv('CONDOOR_' + script_name.upper(), user_config_file_path)
+
+    if os.path.exists(user_config_file_path):
+        user_dict = load_yaml(user_config_file_path)
+        default_dict = merge(user_dict, default_dict)
+
+    return default_dict

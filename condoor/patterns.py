@@ -2,7 +2,7 @@
 
 import os
 import re
-import yaml
+from utils import yaml_file_to_dict
 
 
 class PatternManager(object):
@@ -112,30 +112,11 @@ class PatternManager(object):
 class YPatternManager(PatternManager):
     """Yaml version of pattern manager."""
 
-    def __init__(self, config_file_path=None):
+    def __init__(self):
         """Initialize the pattern manager object."""
-        if config_file_path is None:
-            script_name = os.path.splitext(__file__)[0]
-            # try user config path first
-            config_file_path = os.path.join(os.path.expanduser("~"), ".condoor", script_name + '.yaml')
-            if not os.path.exists(config_file_path):
-                # try module config path (assuming it always exists)
-                config_file_path = os.path.splitext(os.path.abspath(__file__))[0] + '.yaml'
-
-                config_file_path = os.getenv(script_name.upper() + '_CFG', config_file_path)
-
-        if not os.path.exists(config_file_path):
-            raise RuntimeError("Pattern Config file does not exits: {}".format(config_file_path))
-
-        pattern_dict = self._read_config(config_file_path)
-        super(YPatternManager, self).__init__(pattern_dict=pattern_dict)
-
-    def _read_config(self, config_file_path):
-        config = {}
-        with open(config_file_path, 'r') as ymlfile:
-            config = yaml.load(ymlfile)
-
-        return config
+        script_name = os.path.splitext(__file__)[0]
+        path = os.path.abspath('./')
+        super(YPatternManager, self).__init__(pattern_dict=yaml_file_to_dict(script_name, path))
 
 # ypm = YPatternManager()
 # from pprint import pprint

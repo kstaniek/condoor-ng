@@ -90,6 +90,7 @@ class Device(object):
         return str(self.node_info)
 
     def clear_info(self):
+        """Clear the device info."""
         self._version_text = None
         self._inventory_text = None
         self._users_text = None
