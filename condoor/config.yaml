@@ -1,9 +1,6 @@
 protocol:
   telnet:
-    first_prompt_timeout: 30
-    esc_char_timeout: 20
-
-  telnet-console:
+    first_prompt_timeout: 20
     esc_char_timeout: 20
 
   ssh:

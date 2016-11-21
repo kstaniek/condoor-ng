@@ -66,6 +66,7 @@ class Controller(object):
                 raise ConnectionTimeoutError("Timeout", self.hostname)
 
             self._session.logfile_read = self._logfile_fd
+            self.connected = True
 
     def send_command(self, cmd):
         """Send command."""
@@ -77,7 +78,7 @@ class Controller(object):
 
     def disconnect(self):
         """Disconnect the controller."""
-        if self._session.isalive():
+        if self._session and self._session.isalive():
             logger.debug("Disconnecting the sessions")
             self.sendline('\x04')  # pylint: disable=no-member
             self.sendline('\x03')  # pylint: disable=no-member
@@ -86,6 +87,11 @@ class Controller(object):
             self._session.close()
         logger.debug("Disconnected")
         self.connected = False
+
+    @property
+    def is_connected(self):
+        """Return connected state."""
+        return self.connected
 
     @property
     def before(self):

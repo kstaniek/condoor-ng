@@ -39,20 +39,22 @@ class Chain(object):
     def connect(self):
         """Connect to the target device using the intermediate jumphosts."""
         device = None
-        logger.debug("Connecting to: {}".format(str(self)))
-        for device in self.devices:
-            protocol_name = device.get_protocol_name()
-            device.protocol = make_protocol(protocol_name, device)
+        if not self.is_connected:
+            logger.debug("Connecting to: {}".format(str(self)))
+            for device in self.devices:
+                protocol_name = device.get_protocol_name()
+                device.protocol = make_protocol(protocol_name, device)
+                self.ctrl.spawn_session(device.protocol.get_command())
+                if device.connect(self.ctrl):
+                    logger.info("Connected to {}".format(device))
+                else:
+                    logger.debug("Connection error")
+                    raise ConnectionError("Connection failed")
 
-            self.ctrl.spawn_session(device.protocol.get_command())
-            if device.connect(self.ctrl):
-                logger.info("Connected to {}".format(device))
-            else:
-                logger.debug("Connection error")
-                raise ConnectionError("Connection failed")
-
-        if device is None:
-            raise ConnectionError("No devices")
+            if device is None:
+                raise ConnectionError("No devices")
+        else:
+            logger.warn("Already connected.")
 
         return True
 
@@ -71,8 +73,10 @@ class Chain(object):
     @property
     def is_connected(self):
         """Return if target device is connected."""
-        # TODO: get info from device/controller
-        return True
+        if self.ctrl and self.ctrl.is_connected:
+            return True
+        else:
+            return False
 
     @property
     def is_discovered(self):

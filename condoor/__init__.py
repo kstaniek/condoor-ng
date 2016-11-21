@@ -18,6 +18,6 @@ This is a python module providing access to Cisco devices over Telnet and SSH.
 
 """
 
-__all__ = ('Connection', 'TIMEOUT', 'EOF', 'pattern_manager', '_CONF',
+__all__ = ('Connection', 'TIMEOUT', 'EOF', 'pattern_manager', 'CONF',
            'CommandTimeoutError', 'ConnectionError', 'ConnectionTimeoutError', 'CommandError',
            'CommandSyntaxError', 'ConnectionAuthenticationError', 'GeneralError')

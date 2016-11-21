@@ -24,7 +24,7 @@ CONNECTION_REFUSED = re.compile("Connection refused")
 PASSWORD_OK = "[Pp]assword [Oo][Kk]"
 AUTH_FAILED = "Authentication failed|not authorized|Login incorrect"
 
-_C = CONF['protocol']['ssh']
+_C = CONF['protocol']['telnet']
 
 
 class Telnet(Protocol):
