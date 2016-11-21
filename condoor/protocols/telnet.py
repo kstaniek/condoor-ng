@@ -12,6 +12,7 @@ from condoor.actions import a_send, a_send_line, a_send_password, a_authenticati
     a_save_last_pattern, a_standby_console
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
+from condoor.config import CONF
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ ESCAPE_CHAR = "Escape character is|Open"
 CONNECTION_REFUSED = re.compile("Connection refused")
 PASSWORD_OK = "[Pp]assword [Oo][Kk]"
 AUTH_FAILED = "Authentication failed|not authorized|Login incorrect"
+
+_C = CONF['protocol']['ssh']
 
 
 class Telnet(Protocol):
@@ -45,7 +48,7 @@ class Telnet(Protocol):
                   driver.unable_to_connect_re, driver.timeout_re, pexpect.TIMEOUT, PASSWORD_OK]
 
         transitions = [
-            (ESCAPE_CHAR, [0], 1, None, 20),
+            (ESCAPE_CHAR, [0], 1, None, _C['esc_char_timeout']),
             (driver.press_return_re, [0, 1], 1, partial(a_send, "\r\n"), 10),
             (PASSWORD_OK, [0, 1], 1, partial(a_send, "\r\n"), 10),
             (driver.standby_re, [0, 5], -1, partial(a_standby_console), 0),
@@ -77,7 +80,8 @@ class Telnet(Protocol):
         transitions = [
             (driver.username_re, [0], 1, partial(a_send_line, self.username), 10),
             (driver.username_re, [1], 1, None, 10),
-            (driver.password_re, [0, 1], 2, partial(a_send_password, self._acquire_password()), 20),
+            (driver.password_re, [0, 1], 2, partial(a_send_password, self._acquire_password()),
+             _C['first_prompt_timeout']),
             (driver.username_re, [2], -1, a_authentication_error, 0),
             (driver.password_re, [2], -1, a_authentication_error, 0),
             (self.device.prompt_re, [0, 1, 2], -1, None, 0),
@@ -113,7 +117,7 @@ class TelnetConsole(Telnet):
                   driver.unable_to_connect_re, driver.timeout_re, pexpect.TIMEOUT, PASSWORD_OK]
 
         transitions = [
-            (ESCAPE_CHAR, [0], 1, partial(a_send, "\r\n"), 20),
+            (ESCAPE_CHAR, [0], 1, partial(a_send, "\r\n"), _C['esc_char_timeout']),
             (driver.press_return_re, [0, 1], 1, partial(a_send, "\r\n"), 10),
             (PASSWORD_OK, [0, 1], 1, partial(a_send, "\r\n"), 10),
             (driver.standby_re, [0, 5], -1, ConnectionError("Standby console", self.hostname), 0),

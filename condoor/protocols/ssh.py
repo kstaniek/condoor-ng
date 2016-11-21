@@ -11,6 +11,7 @@ from condoor.actions import a_send_password, a_authentication_error, a_send, a_u
     a_send_line
 
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
+from condoor.config import CONF
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ NEWSSHKEY = "fingerprint is"
 KNOWN_HOSTS = "added.*to the list of known hosts"
 HOST_KEY_FAILED = "key verification failed"
 
+_C = CONF['protocol']['ssh']
 
 class SSH(Protocol):
     """SSH protocol implementation."""
@@ -77,7 +79,8 @@ class SSH(Protocol):
 
         transitions = [
             (driver.press_return_re, [0, 1], 1, partial(a_send, "\r\n"), 10),
-            (driver.password_re, [0], 1, partial(a_send_password, self._acquire_password()), 20),
+            (driver.password_re, [0], 1, partial(a_send_password, self._acquire_password()),
+             _C['first_prompt_timeout']),
             (driver.password_re, [1], -1, a_authentication_error, 0),
             (self.device.prompt_re, [0, 1], -1, None, 0),
             (pexpect.TIMEOUT, [1], -1,

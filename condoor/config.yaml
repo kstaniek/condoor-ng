@@ -1,9 +1,11 @@
 protocol:
   telnet:
-    timeout: 10
+    first_prompt_timeout: 30
+    esc_char_timeout: 20
 
   telnet-console:
-    timeout: 20
+    esc_char_timeout: 20
 
   ssh:
-    first_prompt_timeout = 30
+    # Wait until first prompt comes up
+    first_prompt_timeout: 30
