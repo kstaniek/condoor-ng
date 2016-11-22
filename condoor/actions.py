@@ -1,6 +1,6 @@
 """Provides predefined actions for Finite State Machines."""
 from condoor.fsm import action
-from condoor.exceptions import ConnectionAuthenticationError, ConnectionError
+from condoor.exceptions import ConnectionAuthenticationError, ConnectionError, ConnectionTimeoutError
 
 
 @action
@@ -98,7 +98,19 @@ def a_unexpected_prompt(ctx):
     prompt = ctx.ctrl.after
     ctx.msg = "Received the jump host prompt: '{}'".format(prompt)
     ctx.device.connected = False
-    return False
+    ctx.finished = True
+    raise ConnectionError("Unable to connect to the device.", ctx.ctrl.hostname)
+
+
+@action
+def a_connection_timeout(ctx):
+    """Checks the prompt and update the drivers."""
+    prompt = ctx.ctrl.after
+    ctx.msg = "Received the jump host prompt: '{}'".format(prompt)
+    print(ctx.msg)
+    ctx.device.connected = False
+    ctx.finished = True
+    raise ConnectionTimeoutError("Unable to connect to the device.", ctx.ctrl.hostname)
 
 
 @action

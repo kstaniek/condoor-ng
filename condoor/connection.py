@@ -179,7 +179,11 @@ class Connection(object):
         if logfile:
             self.session_fd = logfile
 
-        self._clear_cache() if force_discovery else self._read_cache()
+        if force_discovery:
+            self._clear_cache()
+            self.disconnect()
+        else:
+            self._read_cache()
 
         chain_indices = self._chain_indices()
         excpt = ConnectionError("Could not reconnect to the device.")
@@ -204,6 +208,11 @@ class Connection(object):
                 if chain.connect():
                     break
             except (ConnectionTimeoutError, ConnectionError) as e:  # pylint: disable=invalid-name
+                if chain.ctrl.is_connected:
+                    prompt = chain.ctrl.detect_prompt()
+                    index = chain.get_device_index_based_on_prompt(prompt)
+                    chain.tail_disconnect(index)
+
                 # TODO: Make a configuration parameter
                 elapsed = time.time() - begin
                 sleep_time = min(30, max_timeout - elapsed)

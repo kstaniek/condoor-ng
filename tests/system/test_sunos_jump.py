@@ -60,6 +60,7 @@ class TestSunConnection(TestCase):
             pass
 
     def tearDown(self):
+        self.server.RUNSHELL = False
         self.server.shutdown()
         self.server.server_close()
         self.server_thread.join()
@@ -71,6 +72,7 @@ class TestSunConnection(TestCase):
         with self.assertRaises(condoor.ConnectionTimeoutError):
             conn.connect(self.logfile_condoor)
         print(conn.description_record)
+        conn.reconnect(30)
 
     def test_sun_connection_wrong_passowrd(self):
         urls = ["telnet://admin:wrong@127.0.0.1:10023", "telnet://admin:admin@host1"]

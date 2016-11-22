@@ -13,4 +13,5 @@ class YConfig(dict):
         path = os.path.abspath('./')
         super(YConfig, self).__init__(yaml_file_to_dict(script_name, path))
 
+
 CONF = YConfig()

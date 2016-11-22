@@ -39,9 +39,9 @@ class Chain(object):
     def connect(self):
         """Connect to the target device using the intermediate jumphosts."""
         device = None
-        if not self.is_connected:
-            logger.debug("Connecting to: {}".format(str(self)))
-            for device in self.devices:
+        logger.debug("Connecting to: {}".format(str(self)))
+        for device in self.devices:
+            if not device.connected:
                 protocol_name = device.get_protocol_name()
                 device.protocol = make_protocol(protocol_name, device)
                 self.ctrl.spawn_session(device.protocol.get_command())
@@ -51,16 +51,15 @@ class Chain(object):
                     logger.debug("Connection error")
                     raise ConnectionError("Connection failed")
 
-            if device is None:
-                raise ConnectionError("No devices")
-        else:
-            logger.warn("Already connected.")
+        if device is None:
+            raise ConnectionError("No devices")
 
         return True
 
     def disconnect(self):
         """Disconnect from the device."""
         self.ctrl.disconnect()
+        self.tail_disconnect(-1)
 
     @property
     def target_device(self):
@@ -74,6 +73,7 @@ class Chain(object):
     def is_connected(self):
         """Return if target device is connected."""
         if self.ctrl and self.ctrl.is_connected:
+            # FIXME: Walk through device and check is_connected
             return True
         else:
             return False
@@ -102,6 +102,23 @@ class Chain(object):
         device_index = self.devices.index(device)
         prompts = [re.compile("(?!x)x")] + [dev.prompt_re for dev in self.devices[:device_index]]
         return prompts
+
+    def get_device_index_based_on_prompt(self, prompt):
+        conn_info = ""
+        for device in self.devices:
+            conn_info += str(device) + "->"
+            if device.prompt == prompt:
+                logger.debug("Connected to: {}".format(conn_info))
+                return self.devices.index(device)
+        else:
+            return None
+
+    def tail_disconnect(self, index):
+        try:
+            for device in self.devices[index + 1:]:
+                device.connected = False
+        except IndexError:
+            pass
 
     def send(self, cmd, timeout, wait_for_string):
         """Send command to the target device."""

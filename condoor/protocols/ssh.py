@@ -24,6 +24,7 @@ HOST_KEY_FAILED = "key verification failed"
 
 _C = CONF['protocol']['ssh']
 
+
 class SSH(Protocol):
     """SSH protocol implementation."""
 
@@ -34,22 +35,28 @@ class SSH(Protocol):
     def get_command(self, version=2):
         """Return the SSH protocol specific command to connect."""
         if self.username:
-            command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -{} -p {} {}@{}".format(
-                version, self.port, self.username, self.hostname
-            )
+            # Not supported on SunOS
+            # "-o ConnectTimeout={}
+            command = "ssh " \
+                      "-o UserKnownHostsFile=/dev/null " \
+                      "-o StrictHostKeyChecking=no " \
+                      "-{} " \
+                      "-p {} {}@{}".format(version, self.port, self.username, self.hostname)
         else:
-            command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -{} -p {} {}".format(
-                version, self.port, self.hostname
-            )
+            command = "ssh " \
+                      "-o UserKnownHostsFile=/dev/null " \
+                      "-o StrictHostKeyChecking=no " \
+                      "-{} " \
+                      "-p {} {}".format(version, self.port, self.hostname)
         return command
 
     def connect(self, driver):
         """Connect using the SSH protocol specific FSM."""
-        #                      0                    1                 2                 3
+        #                      0                    1                 2
         events = [driver.password_re, self.device.prompt_re, driver.unable_to_connect_re,
-                  #   4           5               6               7                   8
+                  #   3          4              5               6                   7
                   NEWSSHKEY, KNOWN_HOSTS, HOST_KEY_FAILED, MODULUS_TOO_SMALL, PROTOCOL_DIFFER,
-                  #      9              10
+                  #      8              9
                   driver.timeout_re, pexpect.TIMEOUT]
 
         transitions = [
@@ -66,10 +73,11 @@ class SSH(Protocol):
             (pexpect.TIMEOUT, [0], 5, partial(a_send, "\r\n"), 10),
             (pexpect.TIMEOUT, [5], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0),
             (driver.timeout_re, [0], -1, ConnectionTimeoutError("Connection timeout", self.hostname), 0),
-
         ]
+
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
-        fsm = FSM("SSH-CONNECT", self.device, events, transitions, timeout=30, searchwindowsize=160)
+        fsm = FSM("SSH-CONNECT", self.device, events, transitions, timeout=_C['connect_timeout'],
+                  searchwindowsize=160)
         return fsm.run()
 
     def authenticate(self, driver):
@@ -88,12 +96,8 @@ class SSH(Protocol):
         ]
 
         logger.debug("EXPECTED_PROMPT={}".format(pattern_to_str(self.device.prompt_re)))
-
         fsm = FSM("SSH-AUTH", self.device, events, transitions, init_pattern=self.last_pattern, timeout=30)
-        fsm.run()
-
-        self.try_read_prompt(1)
-        return True
+        return fsm.run()
 
     def disconnect(self):
         """Disconnect using the protocol specific method."""

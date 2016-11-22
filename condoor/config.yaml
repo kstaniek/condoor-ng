@@ -2,7 +2,10 @@ protocol:
   telnet:
     first_prompt_timeout: 20
     esc_char_timeout: 20
+    connect_timeout: 180
 
   ssh:
     # Wait until first prompt comes up
     first_prompt_timeout: 30
+    # SSH -o ConnectTimeout value (30) - not supported on SunOS
+    connect_timeout: 120

@@ -327,7 +327,7 @@ class SunHandler(DeviceHandler):
     def telnet(self, params):
         self.writeresponse("""Trying host1...
 telnet: connect to address 155.156.1.3: Operation timed out""")
-        self.RUNSHELL = False
+        # self.RUNSHELL = False
 
 
 class IOSXEHandler(DeviceHandler):

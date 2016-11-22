@@ -100,6 +100,8 @@ class Device(object):
         self.platform = None
         self.udi = None
         self.is_console = None
+        self.prompt = None
+        self.prompt_re = None
 
     def connect(self, ctrl):
         """Connect to the device."""
@@ -111,8 +113,9 @@ class Device(object):
         self.ctrl = ctrl
         if self.protocol.connect(self.driver):
             if self.protocol.authenticate(self.driver):
+                self.ctrl.try_read_prompt(1)
                 if not self.prompt:
-                    self.prompt = self.protocol.detect_prompt()
+                    self.prompt = self.ctrl.detect_prompt()
                 self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
                 self.connected = True
 
@@ -126,6 +129,7 @@ class Device(object):
                 return True
 
         else:
+            self.connected = False
             return False
 
     def _connected_to_target(self):
