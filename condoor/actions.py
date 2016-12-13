@@ -18,6 +18,18 @@ def a_send(text, ctx):
 
 
 @action
+def a_send_username(username, ctx):
+    """Sent the username text."""
+
+    if username:
+        ctx.ctrl.sendline(username)
+        return True
+    else:
+        ctx.ctrl.disconnect()
+        raise ConnectionAuthenticationError("Username not provided", ctx.ctrl.hostname)
+
+
+@action
 def a_send_password(password, ctx):
     """Send the password text.
 

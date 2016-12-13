@@ -1,9 +1,9 @@
 """This is IOS XR Classic driver implementation."""
 
-import re
+# import re
 import logging
 from condoor.drivers.generic import Driver as Generic
-from condoor import pattern_manager
+# from condoor import pattern_manager
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class Driver(Generic):
 
     def reload(self, reload_timeout, save_config):
         """Reload the device."""
+
         pass
 
         # PROCEED = re.compile(re.escape("Proceed with reload? [confirm]"))
@@ -40,7 +41,7 @@ class Driver(Generic):
         #
         # RELOAD_NA = re.compile("Reload to the ROM monitor disallowed from a telnet line")
         #
-        # events = [RELOAD_NA, RELOAD, DONE, PROCEED, CONFIGURATION_IN_PROCESS, self.rommon_prompt, self.press_return,
+        # events = [RELOAD_NA, RELOAD, DONE, PROCEED, CONFIGURATION_IN_PROCESS, self.rommon_re, self.press_return_re ,
         #           CONSOLE, CONFIGURATION_COMPLETED, RECONFIGURE_USERNAME_PROMPT,
         #           pexpect.TIMEOUT, pexpect.EOF]
         #

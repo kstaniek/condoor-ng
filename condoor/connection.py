@@ -121,12 +121,15 @@ class Connection(object):
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
                 The session is logged only if ``log_session=True`` was passed to the constructor.
                 It the parameter is not passed then the default *session.log* file is created in `log_dir`.
+
             force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
 
         Raises:
             ConnectionError: If the discovery method was not called first or there was a problem with getting
-             the connection.
+                the connection.
+
             ConnectionAuthenticationError: If the authentication failed.
+
             ConnectionTimeoutError: If the connection timeout happened.
 
         """
@@ -165,14 +168,18 @@ class Connection(object):
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
                 The session is logged only if ``log_session=True`` was passed to the constructor.
                 It the parameter is not passed then the default *session.log* file is created in `log_dir`.
+
             max_timeout (int): This is the maximum amount of time during the session tries to reconnect. It may take
                 longer depending on the TELNET or SSH default timeout.
+
             force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
 
         Raises:
             ConnectionError: If the discovery method was not called first or there was a problem with getting
              the connection.
+
             ConnectionAuthenticationError: If the authentication failed.
+
             ConnectionTimeoutError: If the connection timeout happened.
 
         """

@@ -40,6 +40,7 @@ class Driver(object):
 
         self.username_re = pattern_manager.pattern(self.platform, 'username')
         self.password_re = pattern_manager.pattern(self.platform, 'password')
+        self.authentication_error_re = pattern_manager.pattern(self.platform, 'authentication_error')
         self.unable_to_connect_re = pattern_manager.pattern(self.platform, 'unable_to_connect')
         self.timeout_re = pattern_manager.pattern(self.platform, 'timeout')
         self.standby_re = pattern_manager.pattern(self.platform, 'standby')
@@ -112,6 +113,9 @@ class Driver(object):
             match = re.search("XR Admin Software", version_text)
             if match:
                 os_type = "Calvados"
+            match = re.search("IOS XRv", version_text)
+            if match:
+                os_type = "XRv"
         return os_type
 
     def get_os_version(self, version_text):
@@ -157,6 +161,10 @@ class Driver(object):
 
     def is_console(self, users_text):
         """Return if device is connected over console."""
+        if users_text is None:
+            logger.debug("Console information not collected")
+            return None
+
         for line in users_text.split('\n'):
             if '*' in line:
                 match = re.search(self.vty_re, line)
