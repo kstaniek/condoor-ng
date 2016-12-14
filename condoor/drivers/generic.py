@@ -113,9 +113,9 @@ class Driver(object):
             match = re.search("XR Admin Software", version_text)
             if match:
                 os_type = "Calvados"
-            match = re.search("IOS XRv", version_text)
-            if match:
-                os_type = "XRv"
+            # match = re.search("IOS XRv", version_text)
+            # if match:
+            #     os_type = "XRv"
         return os_type
 
     def get_os_version(self, version_text):
@@ -139,6 +139,7 @@ class Driver(object):
         if match:
             logger.debug("Platform string: {}".format(match.group()))
             family = match.group(1)
+            print("FAMILI: {}".format(family))
             for key, value in self.families.items():
                 if family.startswith(key):
                     family = value

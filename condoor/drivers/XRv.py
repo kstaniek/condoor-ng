@@ -16,5 +16,5 @@ class Driver(XR):
     prepare_terminal_session = ['terminal exec prompt no-timestamp', 'terminal len 0', 'terminal width 0']
     reload_cmd = 'admin reload location all'
     families = {
-        "IOSXRV": "IOSXRV",
+        "XRv": "IOS-XRv",
     }
