@@ -139,7 +139,6 @@ class Driver(object):
         if match:
             logger.debug("Platform string: {}".format(match.group()))
             family = match.group(1)
-            print("FAMILI: {}".format(family))
             for key, value in self.families.items():
                 if family.startswith(key):
                     family = value
