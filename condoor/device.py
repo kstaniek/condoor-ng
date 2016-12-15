@@ -75,7 +75,7 @@ class Device(object):
             'mode': self.mode,
             'is_console': self.is_console,
             'is_target': self.is_target,
-            'prompt': self.prompt,
+            'prompt': self.driver.base_prompt(self.prompt),
             'hostname': self.hostname,
         }
 
@@ -99,7 +99,7 @@ class Device(object):
         self.family = None
         self.platform = None
         self.udi = None
-        self.is_console = None
+        # self.is_console = None
         self.prompt = None
         self.prompt_re = None
 
