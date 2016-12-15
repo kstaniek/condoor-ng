@@ -153,7 +153,7 @@ def a_send_boot(rommon_boot_command, ctx):
 @action
 def a_reconnect(ctx):
     """Reconnect."""
-    ctx.ctrl.connect(ctx.device)
+    ctx.device.connect(ctx.ctrl)
     return True
 
 
