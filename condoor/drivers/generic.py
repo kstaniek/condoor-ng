@@ -280,6 +280,8 @@ class Driver(object):
 
     def base_prompt(self, prompt):
         """Extract the root prompt pattern."""
+        if prompt is None:
+            return None
         pattern = pattern_manager.pattern(self.platform, "prompt_dynamic", compiled=False)
         pattern = pattern.format(prompt="(?P<prompt>.*?)")
         result = re.search(pattern, prompt)

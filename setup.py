@@ -65,7 +65,7 @@ NAME = 'condoor'
 
 
 def version():
-    pyfile = 'condoor/__init__.py'
+    pyfile = 'condoor/version.py'
     with open(pyfile) as fp:
         data = fp.read()
 
