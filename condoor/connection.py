@@ -10,12 +10,12 @@ from collections import deque
 from condoor.chain import Chain
 from condoor.exceptions import ConnectionError, ConnectionTimeoutError
 from condoor.utils import FilteredFile, normalize_urls, make_handler
-import condoor
+from condoor.version import __version__
 
 logger = logging.getLogger(__name__)
 
 
-_CACHE_FILE = "/tmp/condoor.{version}.shelve"
+_CACHE_FILE = "/tmp/condoor." + __version__ +".shelve"
 
 
 class Connection(object):
@@ -36,9 +36,8 @@ class Connection(object):
         top_logger.setLevel(log_level)
 
         self.session_fd = self._make_session_fd(log_dir)
-        global _CACHE_FILE
-        _CACHE_FILE = _CACHE_FILE.format(version=condoor.__version__)
-        top_logger.info("Condoor version {}".format(condoor.__version__))
+        top_logger.info("Condoor Version {}".format(__version__))
+        top_logger.debug("Cache filename: {}".format(_CACHE_FILE))
 
         self.connection_chains = [Chain(self, url_list) for url_list in normalize_urls(urls)]
 
@@ -75,7 +74,7 @@ class Connection(object):
         try:
             cache = shelve.open(_CACHE_FILE, mode)
         except Exception:
-            logger.error("Unable to open a cache file for '{}'".format(mode))
+            logger.error("Unable to open a cache file for read.")
             return None
         return cache
 
@@ -499,7 +498,6 @@ class Connection(object):
             'connections': [{'chain': [device.device_info for device in chain.devices]}
                             for chain in self.connection_chains],
             'last_chain': self._last_chain_index,
-            'version': condoor.__version__,
         }
 
     @description_record.setter

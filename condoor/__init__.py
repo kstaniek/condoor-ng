@@ -6,10 +6,10 @@ from condoor.patterns import YPatternManager as PatternManager
 
 from condoor.exceptions import CommandTimeoutError, ConnectionError, ConnectionTimeoutError, CommandError, \
     CommandSyntaxError, ConnectionAuthenticationError, GeneralError, InvalidHopInfoError
+from version import __version__
 
 from pexpect import TIMEOUT, EOF
 
-__version__ = '2.0.0'
 
 pattern_manager = PatternManager()
 
