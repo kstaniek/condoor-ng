@@ -15,17 +15,7 @@ import condoor
 logger = logging.getLogger(__name__)
 
 
-def version():
-    pyfile = os.path.abspath('condoor/__init__.py')
-    with open(pyfile) as fp:
-        data = fp.read()
-
-    match = re.search("__version__ = '([^']+)'", data)
-    assert match, 'cannot find version in {}'.format(pyfile)
-    return match.group(1)
-
-
-_CACHE_FILE = "/tmp/condoor." + version() + ".shelve"
+_CACHE_FILE = "/tmp/condoor.{version}.shelve"
 
 
 class Connection(object):
@@ -46,7 +36,9 @@ class Connection(object):
         top_logger.setLevel(log_level)
 
         self.session_fd = self._make_session_fd(log_dir)
-        top_logger.info("Condoor version {}".format(version()))
+        global _CACHE_FILE
+        _CACHE_FILE = _CACHE_FILE.format(version=condoor.__version__)
+        top_logger.info("Condoor version {}".format(condoor.__version__))
 
         self.connection_chains = [Chain(self, url_list) for url_list in normalize_urls(urls)]
 
