@@ -11,7 +11,6 @@ class Protocol(object):
     def __init__(self, device):
         """Initialize the protocol object."""
         self.device = device
-        self.hostname = self.device.node_info.hostname
         self.port = self.device.node_info.port
         self.password = self.device.node_info.password
         self.username = self.device.node_info.username
@@ -29,6 +28,10 @@ class Protocol(object):
     def disconnect(self):
         """Disconnect using specific protocol."""
         raise NotImplementedError("Disconnect method not implemented")
+
+    @property
+    def hostname(self):
+        return self.device.node_info.hostname
 
     def _acquire_password(self):
         # TODO: Remove

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Delegate following methods to _session class
 @delegate("_session", ("expect", "expect_exact", "expect_list", "compile_pattern_list", "sendline",
-                       "isalive", "sendcontrol", "send", "read_nonblocking", "setecho"))
+                       "isalive", "sendcontrol", "send", "read_nonblocking", "setecho", "delaybeforesend"))
 class Controller(object):
     """Controller class which wraps the pyexpect.spawn class."""
 
@@ -26,9 +26,11 @@ class Controller(object):
         self._logfile_fd = connection.session_fd
         self.connected = False
         self.authenticated = False
-        # FIXME: consider the hostname
-        self.hostname = 'ctrl-hostname'
         self.last_hop = 0
+
+    @property
+    def hostname(self):
+        return self._connection.hostname
 
     def spawn_session(self, command):
         """Spawn the session using proper command."""
@@ -51,9 +53,10 @@ class Controller(object):
                     command,
                     maxread=50000,
                     searchwindowsize=None,
-                    env={"TERM": "VT100"},  # to avoid color control charactes
+                    env={"TERM": "VT100"},  # to avoid color control characters
                     echo=True  # KEEP YOUR DIRTY HANDS OFF FROM ECHO!
                 )
+                self._session.delaybeforesend = None
                 rows, cols = self._session.getwinsize()
                 if cols < 160:
                     self._session.setwinsize(1024, 160)
