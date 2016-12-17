@@ -92,23 +92,28 @@ class Connection(object):
         if cache is not None:
             try:
                 self.description_record = cache[key]
-                logger.info("Used cached information.")
+                logger.info("Read cached information.")
             except KeyError:
                 logger.debug("Connection cache missed: {}.".format(key))
             finally:
                 cache.close()
 
     def _clear_cache(self):
-        key = self._get_key()
-        cache = self._cache_open(mode='c')
-        if cache is not None:
-            try:
-                del cache[key]
-            except KeyError:
-                logger.debug("Connection cache missed: {}.".format(key))
-            cache.close()
-            logger.info("Connection cache cleared.")
+        # key = self._get_key()
+        self._read_cache()
         self.description_record = None
+        logger.debug("Description record: {}".format(self.description_record))
+        self._write_cache()
+
+        # cache = self._cache_open(mode='c')
+        # if cache is not None:
+        #     try:
+        #         del cache[key]
+        #     except KeyError:
+        #         logger.debug("Connection cache missed: {}.".format(key))
+        #     cache.close()
+        #     logger.info("Connection cache cleared.")
+        # self.description_record = None
 
     def _chain_indices(self):
         """Get the deque of chain indices starting with last successful index."""
