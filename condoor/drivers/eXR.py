@@ -11,8 +11,11 @@ from condoor.utils import pattern_to_str
 from condoor.fsm import FSM
 from condoor.drivers.generic import Driver as Generic
 from condoor import pattern_manager
+from condoor.config import CONF
 
 logger = logging.getLogger(__name__)
+
+_C = CONF['driver']['eXR']
 
 
 class Driver(Generic):
@@ -76,6 +79,7 @@ class Driver(Generic):
         events += self.device.get_previous_prompts()  # without target prompt
 
         logger.debug("Expecting: {}".format(pattern_to_str(expected_string)))
+        logger.debug("Calvados prompt: {}".format(pattern_to_str(self.calvados_re)))
 
         transitions = [
             (self.syntax_error_re, [0], -1, CommandSyntaxError("Command unknown", self.device.hostname), 0),
@@ -88,7 +92,7 @@ class Driver(Generic):
             (self.press_return_re, [0], -1, a_stays_connected, 0),
             (self.calvados_connect_re, [0], 2, None, 0),
             # admin command to switch to calvados
-            (self.calvados_re, [2], 3, None, 1),
+            (self.calvados_re, [2], 3, None, _C['calvados_term_wait_time']),
             # getting the prompt only
             (pexpect.TIMEOUT, [3], 0, partial(a_send, "\r"), 0),
             # term len
