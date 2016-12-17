@@ -37,9 +37,9 @@ def a_send_password(password, ctx):
     If password not provided it disconnects from the device and raises ConnectionAuthenticationError exception.
     """
     if password:
-        ctx.ctrl.setecho(False)
+        #ctx.ctrl.setecho(False)
         ctx.ctrl.sendline(password)
-        ctx.ctrl.setecho(True)
+        #ctx.ctrl.setecho(True)
         return True
     else:
         ctx.ctrl.disconnect()
