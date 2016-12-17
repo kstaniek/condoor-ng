@@ -279,7 +279,7 @@ class Driver(object):
         pass
 
     def base_prompt(self, prompt):
-        """Extract the root prompt pattern."""
+        """Extract the base prompt pattern."""
         if prompt is None:
             return None
         pattern = pattern_manager.pattern(self.platform, "prompt_dynamic", compiled=False)
@@ -287,10 +287,10 @@ class Driver(object):
         result = re.search(pattern, prompt)
         if result:
             base = result.group("prompt") + "#"
-            logger.debug("Root prompt: {}".format(base))
+            logger.debug("base prompt: {}".format(base))
             return base
         else:
-            logger.error("Unable to extract the root prompt")
+            logger.error("Unable to extract the base prompt")
             return prompt
 
     def make_dynamic_prompt(self, prompt):
