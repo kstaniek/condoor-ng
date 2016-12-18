@@ -282,6 +282,8 @@ class Driver(object):
         """Extract the base prompt pattern."""
         if prompt is None:
             return None
+        if not self.device.is_target:
+            return prompt
         pattern = pattern_manager.pattern(self.platform, "prompt_dynamic", compiled=False)
         pattern = pattern.format(prompt="(?P<prompt>.*?)")
         result = re.search(pattern, prompt)
