@@ -15,7 +15,7 @@ from condoor.version import __version__
 logger = logging.getLogger(__name__)
 
 
-_CACHE_FILE = "/tmp/condoor." + __version__ +".shelve"
+_CACHE_FILE = "/tmp/condoor." + __version__ + ".shelve"
 
 
 class Connection(object):
