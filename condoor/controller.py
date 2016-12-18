@@ -90,7 +90,8 @@ class Controller(object):
             self.sendline('\x03')  # pylint: disable=no-member
             self.sendcontrol(']')  # pylint: disable=no-member
             self.sendline('quit')  # pylint: disable=no-member
-            self._session.close()
+            self._session.close(force=True)
+            self._session.wait()
         logger.debug("Disconnected")
         self.connected = False
 
