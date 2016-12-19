@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def action(func):
-    """Wrapper for FSM action function providing extended loging information based on doc string."""
+    """Wrapper for FSM action function providing extended logging information based on doc string."""
     @wraps(func)
     def call_action(*args, **kwargs):
         """Wrap the function with logger debug."""
@@ -63,7 +63,7 @@ class FSM(object):
     class Context(object):
         """FSM Context class."""
 
-        _slots__ = ('fsm_name', 'ctrl', 'event', 'state', 'finished', 'msg', 'pattern')
+        _slots__ = ('fsm_name', 'ctrl', 'event', 'state', 'finished', 'msg', 'pattern', 'device')
         fsm_name = "FSM"
         ctrl = None
         event = None
@@ -71,6 +71,7 @@ class FSM(object):
         finished = False
         msg = ""
         pattern = None
+        device = None
 
         def __init__(self, fsm_name, device):
             """Initialize the FSM context object.
@@ -172,7 +173,7 @@ class FSM(object):
                     logger.debug("E={},S={},T={},RT={:.2f}".format(ctx.event, ctx.state, timeout, finish_time))
                     if callable(action_instance) and not isclass(action_instance):
                         if not action_instance(ctx):
-                            logger.critical("Error: {}".format(ctx.msg))
+                            logger.error("Error: {}".format(ctx.msg))
                             return False
                     elif isinstance(action_instance, Exception):
                         logger.debug("A=Exception {}".format(action_instance))

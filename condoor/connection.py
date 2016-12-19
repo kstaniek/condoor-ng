@@ -25,6 +25,7 @@ class Connection(object):
         """Initialize the Connection object."""
         self._discovered = False
         self._last_chain_index = 0
+        self._msg_callback = None
 
         self.log_session = log_session
         top_logger = logging.getLogger("condoor")
@@ -140,15 +141,22 @@ class Connection(object):
             ConnectionTimeoutError: If the connection timeout happened.
 
         """
-        logger.debug("Connecting to the device.")
-
         if logfile:
             self.session_fd = logfile
 
         self._clear_cache() if force_discovery else self._read_cache()
 
-        excpt = ConnectionError("Unable to connect to the device.")
+        excpt = ConnectionError("Could not connect to the device.")
+
+        chains = len(self.connection_chains)
+        for index, chain in enumerate(self.connection_chains, start=1):
+            self.emit_message("Connection chain {}/{}: {}".format(index, chains, str(chain)), log_level=logging.INFO)
+
+        begin = time.time()
+        attempt = 1
         for index in self._chain_indices():
+            self.emit_message("Connection chain/attempt [{}/{}]".format(index + 1, attempt), log_level=logging.INFO)
+
             chain = self.connection_chains[index]
             self._last_chain_index = index
             try:
@@ -156,12 +164,15 @@ class Connection(object):
                     break
             except (ConnectionTimeoutError, ConnectionError) as e:  # pylint: disable=invalid-name
                 excpt = e
+
+            attempt += 1
         else:
             # invalidate cache
             raise excpt
 
         self._write_cache()
-        logger.debug("Device connected successfully.")
+        elapsed = time.time() - begin
+        self.emit_message("Target device connected in {:.2f}s.".format(elapsed), log_level=logging.INFO)
         logger.debug("-" * 20)
 
     def reconnect(self, logfile=None, max_timeout=360, force_discovery=False):
@@ -180,6 +191,8 @@ class Connection(object):
                 longer depending on the TELNET or SSH default timeout.
 
             force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
+
+            status_update_callback (callable): Optional. Callback with current reconnect status.
 
         Raises:
             ConnectionError: If the discovery method was not called first or there was a problem with getting
@@ -200,23 +213,34 @@ class Connection(object):
             self._read_cache()
 
         chain_indices = self._chain_indices()
-        excpt = ConnectionError("Could not reconnect to the device.")
 
-        logger.info("Trying to reconnect within {} seconds".format(max_timeout))
+        excpt = ConnectionError("Could not (re)connect to the device.")
+
+        chains = len(self.connection_chains)
+        for index, chain in enumerate(self.connection_chains, start=1):
+            self.emit_message("Connection chain {}/{}: {}".format(index, chains, str(chain)), log_level=logging.INFO)
+
+        # logger.info("Trying to reconnect within {} seconds".format(max_timeout))
+        self.emit_message("Trying to (re)connect within {} seconds".format(max_timeout), log_level=logging.INFO)
         sleep_time = 0
         begin = time.time()
         attempt = 1
         elapsed = 0
+
         while max_timeout - elapsed > 0:
             if sleep_time > 0:
-                logger.debug("Sleep {:.0f}s".format(sleep_time))
+                # logger.debug("Sleep {:.0f}s".format(sleep_time))
+                self.emit_message("Sleeping {:.0f}s".format(sleep_time), log_level=logging.INFO)
                 time.sleep(sleep_time)
 
             # up
             elapsed = time.time() - begin
-            logger.debug("Reconnecting. Attempt {} Elapsed {:.1f}s".format(attempt, elapsed))
+            # logger.debug("Connection attempt {} Elapsed {:.1f}s".format(attempt, elapsed))
             try:
                 index = chain_indices[0]
+                self.emit_message("Connection chain/attempt [{}/{}]".format(index + 1, attempt),
+                                  log_level=logging.INFO)
+
                 chain = self.connection_chains[index]
                 self._last_chain_index = index
                 if chain.connect():
@@ -227,19 +251,27 @@ class Connection(object):
                     index = chain.get_device_index_based_on_prompt(prompt)
                     chain.tail_disconnect(index)
 
+                # elapsed = time.time() - begin
+                # sleep_time = min(30, max_timeout - elapsed)
+                # move to the next index
+                self.emit_message("Connection Error: {}".format(e), log_level=logging.ERROR)
+                chain_indices.rotate(-1)
+                excpt = e
+            finally:
                 # TODO: Make a configuration parameter
                 elapsed = time.time() - begin
                 sleep_time = min(30, max_timeout - elapsed)
-                # move to the next index
-                chain_indices.rotate(-1)
-                excpt = e
+                self.emit_message("Time elapsed {:.1f}s/{:.1f}s".format(elapsed, max_timeout), log_level=logging.INFO)
+
             attempt += 1
         else:
-            logger.error("Could not reconnect to the device within {:.2f}s".format(elapsed))
+            # logger.error("Could not reconnect to the device within {:.2f}s".format(elapsed))
+            self.emit_message("Unable to (re)connect within {:.2f}s".format(elapsed), log_level=logging.ERROR)
             raise excpt
 
         self._write_cache()
-        logger.debug("Device connected successfully.")
+        # logger.debug("Device connected successfully.")
+        self.emit_message("Target device connected in {:.2f}s.".format(elapsed), log_level=logging.INFO)
         logger.debug("-" * 20)
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
@@ -370,6 +402,25 @@ class Connection(object):
 
         """
         return self._chain.target_device.run_fsm(name, command, events, transitions, timeout, max_transitions)
+
+    def emit_message(self, message, log_level):
+        """Call the msg callback function with the message."""
+        if self._msg_callback:
+            self._msg_callback(message)
+        logger.log(log_level, message)
+
+    @property
+    def msg_callback(self):
+        """Return the message callback."""
+        return self._msg_callback
+
+    @msg_callback.setter
+    def msg_callback(self, callback):
+        """Set the message callback."""
+        if callable(callback):
+            self._msg_callback = callback
+        else:
+            self._msg_callback = None
 
     @property
     def _chain(self):

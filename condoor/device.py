@@ -62,6 +62,8 @@ class Device(object):
 
         self.last_command_result = None
 
+        self.last_error_msg = None
+
     @property
     def device_info(self):
         """Return device info dict."""

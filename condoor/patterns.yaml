@@ -56,7 +56,7 @@ generic:
     description: 'Command too long'
 
   unable_to_connect:
-    pattern: 'nodename nor servname provided, or not known|[Uu]nknown host|[Dd]estination unreachable|[Uu]nable to connect|[Cc]onnection refused|command not found|reset by peer|closed by foreign host'
+    pattern: 'nodename nor servname provided, or not known|[Uu]nknown host|[Dd]estination unreachable|[Uu]nable to connect|[Cc]onnection refused|command not found|reset by peer|closed by foreign host|No route to host'
     description: 'Unable to connect'
 
   timeout:

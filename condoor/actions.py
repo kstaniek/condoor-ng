@@ -59,7 +59,10 @@ def a_unable_to_connect(ctx):
 
     The state machine finishes without exception
     """
-    ctx.msg = "{}{}".format(ctx.ctrl.before, ctx.ctrl.after)
+    message = "{}{}".format(ctx.ctrl.before, ctx.ctrl.after)
+    ctx.msg = message.strip().splitlines()[-1]
+    ctx.device.last_error_msg = ctx.msg
+    # ctx.msg = "{}{}".format(ctx.ctrl.before, ctx.ctrl.after)
     return False
 
 

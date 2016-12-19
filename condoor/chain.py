@@ -34,22 +34,33 @@ class Chain(object):
 
     def __repr__(self):
         """Return the string representation of devices in the chain."""
-        return str(self.devices)
+        name = ""
+        for device in self.devices:
+            name += "->{}".format(str(device))
+        return name[2:]
 
     def connect(self):
         """Connect to the target device using the intermediate jumphosts."""
         device = None
-        logger.debug("Connecting to: {}".format(str(self)))
+        # logger.debug("Connecting to: {}".format(str(self)))
         for device in self.devices:
             if not device.connected:
+                self.connection.emit_message("Connecting to {}".format(str(device)), log_level=logging.INFO)
                 protocol_name = device.get_protocol_name()
                 device.protocol = make_protocol(protocol_name, device)
                 self.ctrl.spawn_session(device.protocol.get_command())
                 if device.connect(self.ctrl):
-                    logger.info("Connected to {}".format(device))
+                    # logger.info("Connected to {}".format(device))
+                    self.connection.emit_message("Connected to {}".format(device), log_level=logging.INFO)
                 else:
-                    logger.debug("Connection error")
-                    raise ConnectionError("Connection failed")
+                    if device.last_error_msg:
+                        message = device.last_error_msg
+                        device.last_error_msg = None
+                    else:
+                        message = "Connection error"
+
+                    logger.error(message)
+                    raise ConnectionError(message)  # , host=str(device))
 
         if device is None:
             raise ConnectionError("No devices")

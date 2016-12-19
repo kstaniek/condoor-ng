@@ -14,7 +14,7 @@ class GeneralError(Exception):
                 prefix to the message string. Defaults to *None*. If `host` is *None* then message stays unchanged.
         """
         self.message = message
-        self.hostname = str(host)
+        self.hostname = str(host) if host else None
 
     def __str__(self):
         """Return string representing the exception."""
