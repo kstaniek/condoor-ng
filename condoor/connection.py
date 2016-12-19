@@ -163,7 +163,7 @@ class Connection(object):
                 if chain.connect():
                     break
             except (ConnectionTimeoutError, ConnectionError) as e:  # pylint: disable=invalid-name
-                self.emit_message("Connection Error: {}".format(e), log_level=logging.ERROR)
+                self.emit_message("Connection error: {}".format(e), log_level=logging.ERROR)
                 excpt = e
 
             attempt += 1
@@ -255,7 +255,7 @@ class Connection(object):
                 # elapsed = time.time() - begin
                 # sleep_time = min(30, max_timeout - elapsed)
                 # move to the next index
-                self.emit_message("Connection Error: {}".format(e), log_level=logging.ERROR)
+                self.emit_message("Connection error: {}".format(e), log_level=logging.ERROR)
                 chain_indices.rotate(-1)
                 excpt = e
             finally:
