@@ -161,8 +161,14 @@ class FSM(object):
                     ctx.event = self.ctrl.expect(self.events, searchwindowsize=self.searchwindowsize, timeout=timeout)
                 else:
                     logger.debug("INIT_PATTERN={}".format(pattern_to_str(self.init_pattern)))
-                    ctx.event = self.events.index(self.init_pattern)
-                    self.init_pattern = None
+                    try:
+                        ctx.event = self.events.index(self.init_pattern)
+                    except ValueError:
+                        logger.critical("INIT_PATTERN unknown.")
+                        continue
+                    finally:
+                        self.init_pattern = None
+
                 finish_time = time() - start_time
                 key = (ctx.event, ctx.state)
                 ctx.pattern = self.events[ctx.event]
