@@ -418,9 +418,10 @@ class Device(object):
         """Set privilege mode."""
         self.driver.enable(enable_password)
 
-    def reload(self, reload_timeout, save_config):
+    def reload(self, reload_timeout, save_config, no_reload_cmd):
         """Reload device."""
-        self.ctrl.send(self.driver.reload_cmd)
+        if not no_reload_cmd:
+            self.ctrl.send(self.driver.reload_cmd)
         self.driver.reload(reload_timeout, save_config)
 
     def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
