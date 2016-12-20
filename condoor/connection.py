@@ -176,7 +176,7 @@ class Connection(object):
         self.emit_message("Target device connected in {:.2f}s.".format(elapsed), log_level=logging.INFO)
         logger.debug("-" * 20)
 
-    def reconnect(self, logfile=None, max_timeout=360, force_discovery=False):
+    def reconnect(self, logfile=None, max_timeout=360, force_discovery=False, wait_for_console_boot=False):
         """Reconnect to the device.
 
         It can be called when after device reloads or the session was
@@ -193,8 +193,6 @@ class Connection(object):
 
             force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
 
-            status_update_callback (callable): Optional. Callback with current reconnect status.
-
         Raises:
             ConnectionError: If the discovery method was not called first or there was a problem with getting
              the connection.
@@ -209,13 +207,13 @@ class Connection(object):
 
         if force_discovery:
             self._clear_cache()
-            self.disconnect()
+            # self.disconnect()
         else:
             self._read_cache()
 
         chain_indices = self._chain_indices()
 
-        excpt = ConnectionError("Could not (re)connect to the device.")
+        excpt = ConnectionError("Could not (re)connect to the device")
 
         chains = len(self.connection_chains)
         for index, chain in enumerate(self.connection_chains, start=1):
@@ -231,7 +229,7 @@ class Connection(object):
         while max_timeout - elapsed > 0:
             if sleep_time > 0:
                 # logger.debug("Sleep {:.0f}s".format(sleep_time))
-                self.emit_message("Sleeping {:.0f}s".format(sleep_time), log_level=logging.INFO)
+                self.emit_message("Waiting {:.0f}s before next connection attempt".format(sleep_time), log_level=logging.INFO)
                 time.sleep(sleep_time)
 
             # up
@@ -262,17 +260,17 @@ class Connection(object):
                 # TODO: Make a configuration parameter
                 elapsed = time.time() - begin
                 sleep_time = min(30, max_timeout - elapsed)
-                self.emit_message("Time elapsed {:.1f}s/{:.1f}s".format(elapsed, max_timeout), log_level=logging.INFO)
+                self.emit_message("Time elapsed {:.0f}s/{:.0f}s".format(elapsed, max_timeout), log_level=logging.INFO)
 
             attempt += 1
         else:
             # logger.error("Could not reconnect to the device within {:.2f}s".format(elapsed))
-            self.emit_message("Unable to (re)connect within {:.2f}s".format(elapsed), log_level=logging.ERROR)
+            self.emit_message("Unable to (re)connect within {:.0f}s".format(elapsed), log_level=logging.ERROR)
             raise excpt
 
         self._write_cache()
         # logger.debug("Device connected successfully.")
-        self.emit_message("Target device connected in {:.2f}s.".format(elapsed), log_level=logging.INFO)
+        self.emit_message("Target device connected in {:.0f}s.".format(elapsed), log_level=logging.INFO)
         logger.debug("-" * 20)
 
     def send(self, cmd="", timeout=60, wait_for_string=None):
@@ -325,9 +323,10 @@ class Connection(object):
         """
         self._chain.target_device.enable(enable_password)
 
-    def reload(self, reload_timeout=300, save_config=True):
+    def reload(self, reload_timeout=300, save_config=True, no_reload_cmd=False):
         """Reload the device and wait for device to boot up."""
-        self._chain.target_device.reload(reload_timeout, save_config)
+        self._clear_cache()
+        self._chain.target_device.reload(reload_timeout, save_config, no_reload_cmd)
 
     def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):
         """Instantiate and run the Finite State Machine for the current device connection.

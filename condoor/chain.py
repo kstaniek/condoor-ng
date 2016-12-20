@@ -45,13 +45,13 @@ class Chain(object):
         # logger.debug("Connecting to: {}".format(str(self)))
         for device in self.devices:
             if not device.connected:
-                self.connection.emit_message("Connecting to {}".format(str(device)), log_level=logging.INFO)
+                self.connection.emit_message("Connecting {}".format(str(device)), log_level=logging.INFO)
                 protocol_name = device.get_protocol_name()
                 device.protocol = make_protocol(protocol_name, device)
                 self.ctrl.spawn_session(device.protocol.get_command())
                 if device.connect(self.ctrl):
                     # logger.info("Connected to {}".format(device))
-                    self.connection.emit_message("Connected to {}".format(device), log_level=logging.INFO)
+                    self.connection.emit_message("Connected {}".format(device), log_level=logging.INFO)
                 else:
                     if device.last_error_msg:
                         message = device.last_error_msg
@@ -119,7 +119,7 @@ class Chain(object):
         for device in self.devices:
             conn_info += str(device) + "->"
             if device.prompt == prompt:
-                logger.debug("Connected to: {}".format(conn_info))
+                logger.debug("Connected: {}".format(conn_info))
                 return self.devices.index(device)
         else:
             return None
