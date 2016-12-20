@@ -1,4 +1,5 @@
 """Provides predefined actions for Finite State Machines."""
+import logging
 from condoor.fsm import action
 from condoor.exceptions import ConnectionAuthenticationError, ConnectionError, ConnectionTimeoutError
 
@@ -181,4 +182,12 @@ def a_store_cmd_result(ctx):
         # remove first line
         result = result[index + 1:]
     ctx.device.last_command_result = result.replace('\r', '')
+    return True
+
+
+@action
+def a_message_callback(ctx):
+    """Message the captured pattern."""
+    message = ctx.ctrl.after.strip().splitlines()[-1]
+    ctx.device.chain.connection.emit_message(message, log_level=logging.INFO)
     return True
