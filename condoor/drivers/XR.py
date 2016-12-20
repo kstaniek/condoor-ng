@@ -6,7 +6,8 @@ import logging
 from condoor.drivers.generic import Driver as Generic
 from condoor import TIMEOUT, EOF, ConnectionAuthenticationError, ConnectionError
 from condoor.fsm import FSM
-from condoor.actions import a_reload_na, a_send, a_send_boot, a_reconnect, a_send_username, a_send_password
+from condoor.actions import a_reload_na, a_send, a_send_boot, a_reconnect, a_send_username, a_send_password,\
+    a_message_callback
 
 logger = logging.getLogger(__name__)
 
@@ -37,19 +38,26 @@ class Driver(Generic):
         DONE = re.compile(re.escape("[Done]"))
         CONFIGURATION_COMPLETED = re.compile("SYSTEM CONFIGURATION COMPLETED")
         CONFIGURATION_IN_PROCESS = re.compile("SYSTEM CONFIGURATION IN PROCESS")
+
         # CONSOLE = re.compile("ios con[0|1]/RS?P[0-1]/CPU0 is now available")
         CONSOLE = re.compile("ios con[0|1]/(?:RS?P)?[0-1]/CPU0 is now available")
         RECONFIGURE_USERNAME_PROMPT = "[Nn][Oo] root-system username is configured"
         ROOT_USERNAME_PROMPT = "Enter root-system username\: "
         ROOT_PASSWORD_PROMPT = "Enter secret( again)?\: "
 
+        # BOOT=disk0:asr9k-os-mbi-6.1.1/0x100305/mbiasr9k-rsp3.vm,1; \
+        # disk0:asr9k-os-mbi-5.3.4/0x100305/mbiasr9k-rsp3.vm,2;
+        # Candidate Boot Image num 0 is disk0:asr9k-os-mbi-6.1.1/0x100305/mbiasr9k-rsp3.vm
+        # Candidate Boot Image num 1 is disk0:asr9k-os-mbi-5.3.4/0x100305/mbiasr9k-rsp3.vm
+        CANDIDATE_BOOT_IMAGE = "Candidate Boot Image num 0 is .*vm"
+
         RELOAD_NA = re.compile("Reload to the ROM monitor disallowed from a telnet line")
         #           0          1      2                3                   4                  5
         events = [RELOAD_NA, DONE, PROCEED, CONFIGURATION_IN_PROCESS, self.rommon_re, self.press_return_re,
                   #   6               7                       8                     9      10        11
                   CONSOLE, CONFIGURATION_COMPLETED, RECONFIGURE_USERNAME_PROMPT, TIMEOUT, EOF, self.reload_cmd,
-                  #    12                    13
-                  ROOT_USERNAME_PROMPT, ROOT_PASSWORD_PROMPT]
+                  #    12                    13                     14
+                  ROOT_USERNAME_PROMPT, ROOT_PASSWORD_PROMPT, CANDIDATE_BOOT_IMAGE]
 
         transitions = [
             (self.reload_cmd, [0], 1, partial(a_send, "\r"), 0),
@@ -57,7 +65,8 @@ class Driver(Generic):
             (DONE, [1], 2, None, 120),
             (PROCEED, [2], 3, partial(a_send, "\r"), reload_timeout),
             (self.rommon_re, [0, 3], 4, partial(a_send_boot, "boot"), 600),
-            (CONSOLE, [3, 4], 5, None, 600),
+            (CANDIDATE_BOOT_IMAGE, [0, 3], 4, a_message_callback, 600),
+            (CONSOLE, [0, 1, 3, 4], 5, None, 600),
             (self.press_return_re, [5], 6, partial(a_send, "\r"), 300),
             # configure root username and password the same as used for device connection.
             (RECONFIGURE_USERNAME_PROMPT, [6, 7], 8, None, 10),
@@ -71,5 +80,5 @@ class Driver(Generic):
             (TIMEOUT, [7], -1, ConnectionAuthenticationError("Unable to reconnect after reloading"), 0),
         ]
 
-        fsm = FSM("RELOAD", self.device, events, transitions, timeout=300)
+        fsm = FSM("RELOAD", self.device, events, transitions, timeout=600)
         return fsm.run()
