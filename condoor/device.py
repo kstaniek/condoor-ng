@@ -73,6 +73,7 @@ class Device(object):
             'os_type': self.os_type,
             'os_version': self.os_version,
             'udi': self.udi,
+            # TODO(klstanie): add property to make driver automatically
             'driver_name': self.driver.platform,
             'mode': self.mode,
             'is_console': self.is_console,
@@ -421,7 +422,7 @@ class Device(object):
     def reload(self, reload_timeout, save_config, no_reload_cmd):
         """Reload device."""
         if not no_reload_cmd:
-            self.ctrl.send(self.driver.reload_cmd)
+            self.ctrl.send_command(self.driver.reload_cmd)
         self.driver.reload(reload_timeout, save_config)
 
     def run_fsm(self, name, command, events, transitions, timeout, max_transitions=20):

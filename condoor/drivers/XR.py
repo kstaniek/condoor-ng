@@ -60,11 +60,11 @@ class Driver(Generic):
                   ROOT_USERNAME_PROMPT, ROOT_PASSWORD_PROMPT, CANDIDATE_BOOT_IMAGE]
 
         transitions = [
-            (self.reload_cmd, [0], 1, partial(a_send, "\r"), 0),
-            (RELOAD_NA, [1], -1, a_reload_na, 0),
-            (DONE, [1], 2, None, 120),
+            (RELOAD_NA, [0], -1, a_reload_na, 0),
+            (DONE, [0], 2, None, 120),
             (PROCEED, [2], 3, partial(a_send, "\r"), reload_timeout),
-            (self.rommon_re, [0, 3], 4, partial(a_send_boot, "boot"), 600),
+            # this needs to be verified
+            (self.rommon_re, [0, 3], 3, partial(a_send_boot, "boot"), 600),
             (CANDIDATE_BOOT_IMAGE, [0, 3], 4, a_message_callback, 600),
             (CONSOLE, [0, 1, 3, 4], 5, None, 600),
             (self.press_return_re, [5], 6, partial(a_send, "\r"), 300),
