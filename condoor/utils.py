@@ -2,6 +2,7 @@
 
 import logging
 import socket
+import codecs
 import time
 import re
 import os
@@ -170,10 +171,13 @@ class FilteredFile(object):
 
     __slots__ = ['_file', '_pattern']
 
-    def __init__(self, filename, mode="r", pattern=None):
+    def __init__(self, filename, mode="r", encoding=None, pattern=None):
         """Initialize FilteredFile object."""
         object.__setattr__(self, '_pattern', pattern)
-        object.__setattr__(self, '_file', open(filename, mode))
+        if encoding is None:
+            object.__setattr__(self, '_file', open(filename, mode=mode))
+        else:
+            object.__setattr__(self, '_file', codecs.open(filename, mode=mode, encoding=encoding))
 
     def __getattr__(self, name):
         """Override standard getattr and delegate to file object."""
@@ -206,13 +210,14 @@ class FilteredFile(object):
 class FilteredFileHandler(logging.FileHandler):
     """Class defining custom FileHandler for filtering sensitive information."""
 
-    def __init__(self, filename, mode='a', encoding=None, delay=0, pattern=None):
+    def __init__(self, filename, mode='a', encoding="utf-8", delay=0, pattern=None):
         """Initialize the FilteredFileHandler object."""
         self.pattern = pattern
+        self.encoding = encoding
         logging.FileHandler.__init__(self, filename, mode=mode, encoding=encoding, delay=delay)
 
     def _open(self):
-        return FilteredFile(self.baseFilename, self.mode, self.pattern)
+        return FilteredFile(self.baseFilename, mode=self.mode, encoding=self.encoding, pattern=self.pattern)
 
 
 def normalize_urls(urls):
