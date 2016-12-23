@@ -36,7 +36,7 @@ class Driver(Generic):
         try:
             hostname_text = self.device.send('hostname', timeout=10)
             if hostname_text:
-                self.device.hostname = hostname_text.split('\n')[0]
+                self.device.hostname = hostname_text.splitlines()[0]
                 return hostname_text
         except CommandError:
             return None
