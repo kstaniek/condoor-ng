@@ -95,7 +95,6 @@ class Driver(object):
 
     def get_os_type(self, version_text):  # pylint: disable=no-self-use
         """Return the OS type information from the device."""
-        # FIXME: Consider moving back to device level. This is not depended on the driver
         os_type = None
         if version_text is None:
             return os_type
@@ -113,9 +112,6 @@ class Driver(object):
             match = re.search("XR Admin Software", version_text)
             if match:
                 os_type = "Calvados"
-            # match = re.search("IOS XRv", version_text)
-            # if match:
-            #     os_type = "XRv"
         return os_type
 
     def get_os_version(self, version_text):
