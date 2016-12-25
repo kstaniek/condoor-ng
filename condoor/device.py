@@ -155,7 +155,7 @@ class Device(object):
         # delegate to device
         self.prompt_re = self.driver.make_dynamic_prompt(self.prompt)
 
-        self.prepare_terminal_session()
+        # self.prepare_terminal_session()
 
         if self.udi is None:
             self.update_udi()

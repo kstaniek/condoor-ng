@@ -5,17 +5,14 @@ Condoor provides an easy way to connect to Cisco devices over SSH and Telnet. Th
 of two words: connection and door. It provides the connection door to the Cisco devices using standard Telnet and/or SSH
 protocol.
 
-Condors supports various software platforms including:
+Condoor supports various software platforms including:
 
 - Cisco IOS,
 - Cisco IOS XE,
 - Cisco IOS XR,
-- Cisco IOS eXR.
+- Cisco IOS XR 64 bits,
+- Cisco IOS XRv,
+- Cisco NX-OS.
 
-It has been tested with several hardware platforms including:
-- ASR 9000
-- CRS-16
-- ASR 900
-
-The supported platforms list is constantly being updated as the testing progresses.
+It can also move between different configuration modes: admin, calvados and Windriver.
 

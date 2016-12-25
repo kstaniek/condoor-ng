@@ -64,25 +64,22 @@ class FSM(object):
         """FSM Context class."""
 
         _slots__ = ('fsm_name', 'ctrl', 'event', 'state', 'finished', 'msg', 'pattern', 'device')
-        fsm_name = "FSM"
-        ctrl = None
-        event = None
-        state = 0
-        finished = False
-        msg = ""
-        pattern = None
-        device = None
 
         def __init__(self, fsm_name, device):
             """Initialize the FSM context object.
 
             Args:
                 fsm_name (str): Name of the FSM. This is used for logging.
-                ctrl (object): The controller object.
+                device (object): The device object.
             """
             self.device = device
             self.ctrl = device.ctrl
             self.fsm_name = fsm_name
+            self.event = None
+            self.state = 0
+            self.finished = False
+            self.msg = ""
+            self.pattern = None
 
         def __str__(self):
             """Return the string representing the FSM context."""

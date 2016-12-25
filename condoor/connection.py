@@ -19,10 +19,61 @@ _CACHE_FILE = "/tmp/condoor." + __version__ + ".shelve"
 
 
 class Connection(object):
-    """Connection class providing the condoor API."""
+    """Connection class providing the condoor API.
 
-    def __init__(self, name, urls, log_dir=None, log_level=logging.DEBUG, log_session=True):
-        """Initialize the Connection object."""
+    Main API class providing the basic API to the physical devices.
+    It implements the following methods:
+
+        - connect
+        - reconnect
+        - disconnect
+        - send
+        - reload
+        - enable
+        - run_fsm
+
+    """
+
+    def __init__(self, name, urls=[], log_dir=None, log_level=logging.DEBUG, log_session=True):
+        """Initialize the :class:`condoor.Connection` object.
+
+        Args:
+            name (str): The connection name.
+
+            urls (str or list): This argument may be a string or list of strings or list of list of strings.
+             When **urls** type is string it must be valid URL in the following format::
+
+                urls = "<protocol>://<user>:<password>@<host>:<port>/<enable_password>
+
+             Example::
+
+                urls = "telnet://cisco:cisco@192.168.1.1"
+
+             The *<port>* can be omitted and default port for protocol will be used.
+             When **urls** type is list of strings it can provide multiple intermediate hosts (jumphosts) with
+             their credentials before making the final connection the target device. Example::
+
+                urls = ["ssh://admin:secretpass@jumphost", "telnet://cisco:cisco@192.168.1.1"]
+
+                urls = ["ssh://admin:pass@jumphost1", "ssh://admin:pass@jumphost2",
+                        "telnet://cisco:cisco@192.168.1.1"]
+
+             The **urls** can be list of list of strings. In this case the multiple connection chains can be provided
+             to the target device. This is used when device has two processor cards with console connected to
+             both of them. Example::
+
+                urls = [["ssh://admin:pass@jumphost1", "telnet://cisco:cisco@termserv:2001"],
+                        ["ssh://admin:pass@jumphost1", "telnet://cisco:cisco@termserv:2002"]]
+
+            log_dir (str): The path to the directory when *session.log* and *condoor.log* is stored. If *None*
+             the condoor log and session log is redirected to *stdout*
+
+            log_level (int): The condoor logging level.
+
+            log_session (Bool): If **True** the terminal session is logged.
+
+
+        """
         self._discovered = False
         self._last_chain_index = 0
         self._msg_callback = None
@@ -36,7 +87,11 @@ class Connection(object):
 
         top_logger.setLevel(log_level)
 
-        self.session_fd = self._make_session_fd(log_dir)
+        if log_session:
+            self.session_fd = self._make_session_fd(log_dir)
+        else:
+            self.session_fd = None
+
         top_logger.info("Condoor Version {}".format(__version__))
         top_logger.debug("Cache filename: {}".format(_CACHE_FILE))
 
@@ -106,16 +161,6 @@ class Connection(object):
         logger.debug("Description record: {}".format(self.description_record))
         self._write_cache()
 
-        # cache = self._cache_open(mode='c')
-        # if cache is not None:
-        #     try:
-        #         del cache[key]
-        #     except KeyError:
-        #         logger.debug("Connection cache missed: {}.".format(key))
-        #     cache.close()
-        #     logger.info("Connection cache cleared.")
-        # self.description_record = None
-
     def _chain_indices(self):
         """Get the deque of chain indices starting with last successful index."""
         chain_indices = deque(range(len(self.connection_chains)))
@@ -128,7 +173,7 @@ class Connection(object):
         Args:
             logfile (file): Optional file descriptor for session logging. The file must be open for write.
                 The session is logged only if ``log_session=True`` was passed to the constructor.
-                It the parameter is not passed then the default *session.log* file is created in `log_dir`.
+                If *None* then the default *session.log* file is created in `log_dir`.
 
             force_discovery (Bool): Optional. If True the device discover process will start after getting connected.
 
@@ -176,7 +221,7 @@ class Connection(object):
         self.emit_message("Target device connected in {:.2f}s.".format(elapsed), log_level=logging.INFO)
         logger.debug("-" * 20)
 
-    def reconnect(self, logfile=None, max_timeout=360, force_discovery=False, wait_for_console_boot=False):
+    def reconnect(self, logfile=None, max_timeout=360, force_discovery=False):
         """Reconnect to the device.
 
         It can be called when after device reloads or the session was
@@ -219,7 +264,6 @@ class Connection(object):
         for index, chain in enumerate(self.connection_chains, start=1):
             self.emit_message("Connection chain {}/{}: {}".format(index, chains, str(chain)), log_level=logging.INFO)
 
-        # logger.info("Trying to reconnect within {} seconds".format(max_timeout))
         self.emit_message("Trying to (re)connect within {} seconds".format(max_timeout), log_level=logging.INFO)
         sleep_time = 0
         begin = time.time()
@@ -228,7 +272,6 @@ class Connection(object):
 
         while max_timeout - elapsed > 0:
             if sleep_time > 0:
-                # logger.debug("Sleep {:.0f}s".format(sleep_time))
                 self.emit_message("Waiting {:.0f}s before next connection attempt".format(sleep_time), log_level=logging.INFO)
                 time.sleep(sleep_time)
 
@@ -250,9 +293,6 @@ class Connection(object):
                     index = chain.get_device_index_based_on_prompt(prompt)
                     chain.tail_disconnect(index)
 
-                # elapsed = time.time() - begin
-                # sleep_time = min(30, max_timeout - elapsed)
-                # move to the next index
                 self.emit_message("Connection error: {}".format(e), log_level=logging.ERROR)
                 chain_indices.rotate(-1)
                 excpt = e
@@ -264,12 +304,10 @@ class Connection(object):
 
             attempt += 1
         else:
-            # logger.error("Could not reconnect to the device within {:.2f}s".format(elapsed))
             self.emit_message("Unable to (re)connect within {:.0f}s".format(elapsed), log_level=logging.ERROR)
             raise excpt
 
         self._write_cache()
-        # logger.debug("Device connected successfully.")
         self.emit_message("Target device connected in {:.0f}s.".format(elapsed), log_level=logging.INFO)
         logger.debug("-" * 20)
 
@@ -308,6 +346,7 @@ class Connection(object):
                 It the parameter is not passed then the default *session.log* file is created in `log_dir`.
 
         """
+        logger.warn("'discovery' method is deprecated. Please 'connect' with force_disovery=True.")
         logger.info("Device discovery process started")
         self.connect(logfile=logfile, force_discovery=True)
         self.disconnect()
@@ -350,8 +389,7 @@ class Connection(object):
                 (pexpect.TIMEOUT, [0, 1, 2], -1, error, 0)
 
             ]
-            manager.log("Removing test directory from {} if exists".format(dir))
-            if not device.run_fsm("DELETE_DIR", command, events, transitions, timeout=5):
+            if not conn.run_fsm("DELETE_DIR", command, events, transitions, timeout=5):
                 return False
 
         This FSM tries to remove directory from disk0:
@@ -368,12 +406,14 @@ class Connection(object):
 
             (event, [list_of_states], next_state, action, timeout)
 
-        - event (str): string from the `events` list which is expected to be received from device.
-        - list_of_states (list): List of FSM states that triggers the action in case of event occurrence.
-        - next_state (int): Next state for FSM transition.
-        - action (func): function to be executed if the current FSM state belongs to `list_of_states` and the `event`
-          occurred. The action can be also *None* then FSM transits to the next state without any action. Action
-          can be also the exception, which is raised and FSM stops.
+        Where:
+
+        - **event** (str): string from the `events` list which is expected to be received from device.
+        - **list_of_states** (list): List of FSM states that triggers the action in case of event occurrence.
+        - **next_state** (int): Next state for FSM transition.
+        - **action** (func): function to be executed if the current FSM state belongs to `list_of_states`
+          and the `event` occurred. The action can be also *None* then FSM transits to the next state
+          without any action. Action can be also the exception, which is raised and FSM stops.
 
         The example action::
 
@@ -521,6 +561,7 @@ class Connection(object):
         """Return the dict representing the udi hardware record.
 
         Example::
+
             {
             'description': 'ASR-9904 AC Chassis',
             'name': 'Rack 0',
@@ -537,6 +578,7 @@ class Connection(object):
         """Return the dict representing the target device info record.
 
         Example::
+
             {
             'family': 'ASR9K',
             'os_type': 'eXR',
@@ -549,7 +591,39 @@ class Connection(object):
 
     @property
     def description_record(self):
-        """Return dict describing Connection object."""
+        """Return dict describing :class:`condoor.Connection` object.
+
+        Example::
+
+            {'connections': [{'chain': [{'driver_name': 'eXR',
+                             'family': 'ASR9K',
+                             'hostname': 'vkg3',
+                             'is_console': True,
+                             'is_target': True,
+                             'mode': 'global',
+                             'os_type': 'eXR',
+                             'os_version': '6.1.2.06I',
+                             'platform': 'ASR-9904',
+                             'prompt': 'RP/0/RSP0/CPU0:vkg3#',
+                             'udi': {'description': 'ASR-9904 AC Chassis',
+                                     'name': 'Rack 0',
+                                     'pid': 'ASR-9904-AC',
+                                     'sn': 'FOX2024GKDE ',
+                                     'vid': 'V01'}}]},
+                 {'chain': [{'driver_name': 'generic',
+                             'family': None,
+                             'hostname': '172.27.41.52:2045',
+                             'is_console': None,
+                             'is_target': True,
+                             'mode': None,
+                             'os_type': None,
+                             'os_version': None,
+                             'platform': None,
+                             'prompt': None,
+                             'udi': None}]}],
+            'last_chain': 0}
+
+        """
         return {
             'connections': [{'chain': [device.device_info for device in chain.devices]}
                             for chain in self.connection_chains],

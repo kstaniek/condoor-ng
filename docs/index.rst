@@ -1,17 +1,18 @@
 Welcome to Condoor's |release| documentation!
 =============================================
 
-Condoor is a pure Python module that uses the `Pexpect <http://pexpect.readthedocs.org>`_
-to provide the session connectivity to the devices.
+Condoor is a pure Python module providing the telnet and ssh connectivity to the Cisco devices.
+It supports multiple jumphosts to reach the target device.
 
 
-Contents:
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
 
-   install
    overview
+   install
    api/index
    examples
    FAQ

@@ -6,7 +6,7 @@ example file in code repository::
 
     #!/usr/bin/env python
     # =============================================================================
-    # Copyright (c)  2015, Cisco Systems
+    # Copyright (c)  2017, Cisco Systems
     # All rights reserved.
     #
     # # Author: Klaudiusz Staniek
@@ -38,11 +38,10 @@ example file in code repository::
     import sys
 
     import condoor
-    from condoor.accountmgr import AccountManager
 
 
     usage = '%prog -H url [-J url] [-d <level>] [-h] command'
-    usage += '\nCopyright (C) 2015 by Klaudiusz Staniek'
+    usage += '\nCopyright (C) 2017 by Klaudiusz Staniek'
     parser = optparse.OptionParser(usage=usage)
 
     parser.add_option(

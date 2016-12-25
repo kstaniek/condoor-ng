@@ -5,5 +5,4 @@ API documentation
    :maxdepth: 2
 
    condoor
-   fsm
    exceptions
