@@ -118,5 +118,10 @@ setup(
     data_files=[('condoor', ['condoor/patterns.yaml', 'condoor/config.yaml'])],
     license='Apache 2.0',
     classifiers=CLASSIFIERS,
-    zip_safe=False
+    zip_safe=False,
+    entry_points={
+        'console_scripts': [
+            'condoor = condoor.__main__:run',
+        ]
+    }
 )
