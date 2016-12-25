@@ -55,7 +55,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Condoor'
-copyright = u'2016, Klaudiusz Staniek'
+copyright = u'2016-2017, Klaudiusz Staniek'
 author = u'Klaudiusz Staniek'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -77,9 +77,9 @@ language = None
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
-#today = ''
+# today = ''
 # Else, today_fmt is used as the format for a strftime call.
-#today_fmt = '%B %d, %Y'
+# today_fmt = '%B %d, %Y'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -87,14 +87,14 @@ exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-#default_role = None
+# default_role = None
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
-#add_function_parentheses = True
+# add_function_parentheses = True
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
-#add_module_names = True
+add_module_names = False
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.

@@ -56,9 +56,9 @@ log_levels = {
                    'The --url option can be repeated to define multiple jumphost urls. '
                    'If no --url option provided the CONDOOR_URLS environment variable is used.')
 @click.option("--log-path", default=None, type=click.Path(),
-              help="The logging path. If no path specified condoor logs are sent to stdout and session logs"
+              help="The logging path. If no path specified condoor logs are sent to stdout and session logs "
                    "are sent to stderr.")
-@click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "ERROR", "NONE"]),
+@click.option("--log-level", type=click.Choice(["NONE", "DEBUG", "INFO", "ERROR"]),
               show_default=True, default='ERROR',
               help='Logging level.')
 @click.option("--log-session", is_flag=True,
@@ -72,17 +72,22 @@ log_levels = {
 def run(url, cmd, log_path, log_level, log_session, force_discovery, print_info):
 
     log_level = log_levels[log_level]
-
     conn = condoor.Connection("host", list(url), log_session=log_session, log_level=log_level, log_dir=log_path)
-    conn.connect(force_discovery=force_discovery)
-    if print_info:
-        echo_info(conn)
+    try:
+        conn.connect(force_discovery=force_discovery)
+        if print_info:
+            echo_info(conn)
 
-    for command in cmd:
-        result = conn.send(command)
-        print("\nCommand: {}".format(command))
-        print("Result: \n{}".format(result))
-    conn.disconnect()
+        for command in cmd:
+            result = conn.send(command)
+            print("\nCommand: {}".format(command))
+            print("Result: \n{}".format(result))
+    except (condoor.ConnectionError, condoor.ConnectionAuthenticationError, condoor.ConnectionTimeoutError,
+            condoor.InvalidHopInfoError, condoor.CommandSyntaxError, condoor.CommandTimeoutError,
+            condoor.CommandError, condoor.ConnectionError) as excpt:
+        click.echo(excpt)
+    finally:
+        conn.disconnect()
     return
 
 if __name__ == '__main__':
