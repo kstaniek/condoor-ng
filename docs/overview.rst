@@ -15,7 +15,7 @@ Condoor supports various software platforms including:
 - Cisco NX-OS.
 
 Condoor automatically adapts to different configuration modes and shells, i.e. XR Classic Admin mode,
-XR 64 buts Calvados Admin mode or Windriver Linux when connecting to Line Cards.
+XR 64 bits Calvados Admin mode or Windriver Linux when connecting to the Line Cards.
 
 Here is the command line which installs together with Condoor module::
 
